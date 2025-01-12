@@ -16,6 +16,9 @@
 		16B59AD62D316C3F00231D09 /* Workout_App_for_iOSUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AD52D316C3F00231D09 /* Workout_App_for_iOSUITestsLaunchTests.swift */; };
 		16B59AE52D316D9200231D09 /* Welcome_Screen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AE42D316D9200231D09 /* Welcome_Screen.swift */; };
 		16B59AE92D31707D00231D09 /* WorkoutSelectorScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AE82D31707D00231D09 /* WorkoutSelectorScreen.swift */; };
+		16B59AED2D34213400231D09 /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16B59AEB2D34211F00231D09 /* CoreData.framework */; };
+		16B59AF22D34218600231D09 /* DataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AF02D34218600231D09 /* DataModel.xcdatamodeld */; };
+		16B59AF42D3421F400231D09 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AF32D3421F400231D09 /* PersistenceController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +51,9 @@
 		16B59AD52D316C3F00231D09 /* Workout_App_for_iOSUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout_App_for_iOSUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		16B59AE42D316D9200231D09 /* Welcome_Screen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Welcome_Screen.swift; sourceTree = "<group>"; };
 		16B59AE82D31707D00231D09 /* WorkoutSelectorScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSelectorScreen.swift; sourceTree = "<group>"; };
+		16B59AEB2D34211F00231D09 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
+		16B59AF12D34218600231D09 /* DataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = DataModel.xcdatamodel; sourceTree = "<group>"; };
+		16B59AF32D3421F400231D09 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,6 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				16B59AED2D34213400231D09 /* CoreData.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,10 +85,12 @@
 		16B59AAC2D316C3D00231D09 = {
 			isa = PBXGroup;
 			children = (
+				16B59AF02D34218600231D09 /* DataModel.xcdatamodeld */,
 				16B59AB72D316C3D00231D09 /* Workout App for iOS */,
 				16B59AC82D316C3F00231D09 /* Workout App for iOSTests */,
 				16B59AD22D316C3F00231D09 /* Workout App for iOSUITests */,
 				16B59AB62D316C3D00231D09 /* Products */,
+				16B59AEA2D34211F00231D09 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -100,6 +109,7 @@
 			children = (
 				16B59AB82D316C3D00231D09 /* Workout_App_for_iOSApp.swift */,
 				16B59ABA2D316C3D00231D09 /* ContentView.swift */,
+				16B59AF32D3421F400231D09 /* PersistenceController.swift */,
 				16B59AE42D316D9200231D09 /* Welcome_Screen.swift */,
 				16B59AE82D31707D00231D09 /* WorkoutSelectorScreen.swift */,
 				16B59ABC2D316C3F00231D09 /* Assets.xcassets */,
@@ -131,6 +141,14 @@
 				16B59AD52D316C3F00231D09 /* Workout_App_for_iOSUITestsLaunchTests.swift */,
 			);
 			path = "Workout App for iOSUITests";
+			sourceTree = "<group>";
+		};
+		16B59AEA2D34211F00231D09 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				16B59AEB2D34211F00231D09 /* CoreData.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -264,7 +282,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				16B59ABB2D316C3D00231D09 /* ContentView.swift in Sources */,
+				16B59AF22D34218600231D09 /* DataModel.xcdatamodeld in Sources */,
 				16B59AB92D316C3D00231D09 /* Workout_App_for_iOSApp.swift in Sources */,
+				16B59AF42D3421F400231D09 /* PersistenceController.swift in Sources */,
 				16B59AE92D31707D00231D09 /* WorkoutSelectorScreen.swift in Sources */,
 				16B59AE52D316D9200231D09 /* Welcome_Screen.swift in Sources */,
 			);
@@ -590,6 +610,19 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		16B59AF02D34218600231D09 /* DataModel.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				16B59AF12D34218600231D09 /* DataModel.xcdatamodel */,
+			);
+			currentVersion = 16B59AF12D34218600231D09 /* DataModel.xcdatamodel */;
+			path = DataModel.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = 16B59AAD2D316C3D00231D09 /* Project object */;
 }

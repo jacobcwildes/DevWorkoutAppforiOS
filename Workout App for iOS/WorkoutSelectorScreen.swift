@@ -13,7 +13,7 @@ struct WorkoutSelectorScreen: View {
     @State private var selectedDay: IdentifiableDay? = nil // Use IdentifiableDay
     
     var body: some View {
-        NavigationView {
+        NavigationStack {  // Change NavigationView to NavigationStack
             VStack {
                 if selectedWorkouts.isEmpty {
                     Text("Please add workout days by tapping '+'")
@@ -22,6 +22,9 @@ struct WorkoutSelectorScreen: View {
                 } else {
                     List {
                         ForEach(Array(selectedWorkouts.keys.sorted()), id: \.self) { day in
+                            // Create IdentifiableDay from the day string
+                            let identifiableDay = IdentifiableDay(day: day)
+                            
                             HStack {
                                 Text("\(day):")
                                     .font(.headline)
@@ -30,8 +33,15 @@ struct WorkoutSelectorScreen: View {
                                     .foregroundColor(.gray)
                             }
                             .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedDay = IdentifiableDay(day: day) // Wrap day in IdentifiableDay
+                            .background(
+                                NavigationLink(
+                                    value: identifiableDay // Use value instead of destination
+                                ) {
+                                    EmptyView() // Invisible link used for navigation
+                                }
+                            )
+                            .navigationDestination(for: IdentifiableDay.self) { identifiableDay in
+                                WorkoutDetailView(day: identifiableDay) // Pass IdentifiableDay to the detail view
                             }
                         }
                     }
@@ -49,17 +59,29 @@ struct WorkoutSelectorScreen: View {
             .sheet(isPresented: $showModal) {
                 ModalView(selectedWorkouts: $selectedWorkouts)
             }
-            .sheet(item: $selectedDay) { identifiableDay in
-                WorkoutDetailView(day: identifiableDay.day) // Pass only the day
-            }
         }
     }
 }
 
-struct IdentifiableDay: Identifiable{
-    let id = UUID()
-    let day: String
+
+
+struct IdentifiableDay: Identifiable, Equatable, Hashable {
+    var id = UUID()
+    var day: String
+    
+    // Conform to Hashable
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)  // We can combine the unique `id` for hashing
+        hasher.combine(day)  // Add `day` so it's properly hashed as well
+    }
+
+    // Equatable conformance: compare days
+    static func ==(lhs: IdentifiableDay, rhs: IdentifiableDay) -> Bool {
+        return lhs.day == rhs.day
+    }
 }
+
+
 
 struct Workout: Identifiable {
     let id = UUID()
@@ -165,14 +187,15 @@ extension Date {
 }
 
 struct WorkoutDetailView: View {
-    var day: String
-    @State private var workouts: [Workout] = []
-    @State private var showAddWorkoutModal = false
+    var day: IdentifiableDay  // Accept IdentifiableDay
     
+    @State private var workouts: [Workout] = []
+    @State private var showAddWorkoutView = false  // State to show the add workout view
+
     var body: some View {
         VStack {
             if workouts.isEmpty {
-                Text("No workouts added for \(day). Tap '+' to add one.")
+                Text("No workouts added for \(day.day). Tap '+' to add one.")
                     .foregroundColor(.gray)
                     .padding()
             } else {
@@ -191,22 +214,25 @@ struct WorkoutDetailView: View {
                 }
             }
         }
-        .navigationTitle("\(day) Workouts")
+        .navigationTitle("\(day.day) Workouts")  // Use the day from IdentifiableDay
         .navigationBarItems(trailing: Button(action: {
-            showAddWorkoutModal = true
+            // Open the AddWorkoutView when "+" is tapped
+            showAddWorkoutView = true
         }) {
             Image(systemName: "plus")
                 .font(.title)
         })
-        .sheet(isPresented: $showAddWorkoutModal) {
-            AddWorkoutView(workouts: $workouts)
+        .sheet(isPresented: $showAddWorkoutView) {
+            AddWorkoutView(day: day, workouts: $workouts)
         }
     }
 }
 
+
 struct AddWorkoutView: View {
     @Environment(\.dismiss) var dismiss
-    @Binding var workouts: [Workout]
+    var day: IdentifiableDay  // The selected day for which we're adding a workout
+    @Binding var workouts: [Workout]  // The list of workouts for the selected day
     
     @State private var name = ""
     @State private var weight = ""
@@ -248,9 +274,10 @@ struct AddWorkoutView: View {
               !name.isEmpty else { return }
         
         let newWorkout = Workout(name: name, weight: weight, sets: sets, reps: reps, notes: notes)
-        workouts.append(newWorkout)
+        workouts.append(newWorkout)  // Add the new workout to the workouts list
     }
 }
+
 
 
 #Preview{
