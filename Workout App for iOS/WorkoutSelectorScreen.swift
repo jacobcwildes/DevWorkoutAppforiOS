@@ -9,24 +9,49 @@ import SwiftUI
 
 struct WorkoutSelectorScreen: View {
     @State private var showModal = false
+    @State private var selectedWorkouts: [String: String] = [:]
+    @State private var selectedDay: IdentifiableDay? = nil // Use IdentifiableDay
     
     var body: some View {
-        VStack {
-            Text("Get ready for your workout!")
-                .font(.title)
-                .padding()
-        }
-        .navigationTitle("Workout")
-        .navigationBarItems(trailing: Button(action: {
-            showModal = true
-            print("Add workout tapped")
-        }) {
-            Image(systemName: "plus")
-                .font(.title)
-                .foregroundColor(.blue)
-        })
-        .sheet(isPresented: $showModal) {
-            ModalView()
+        NavigationView {
+            VStack {
+                if selectedWorkouts.isEmpty {
+                    Text("Please add workout days by tapping '+'")
+                        .font(.headline)
+                        .padding()
+                } else {
+                    List {
+                        ForEach(Array(selectedWorkouts.keys.sorted()), id: \.self) { day in
+                            HStack {
+                                Text("\(day):")
+                                    .font(.headline)
+                                Spacer()
+                                Text(selectedWorkouts[day] ?? "None")
+                                    .foregroundColor(.gray)
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedDay = IdentifiableDay(day: day) // Wrap day in IdentifiableDay
+                            }
+                        }
+                    }
+                }
+                Spacer()
+            }
+            .navigationTitle("Workout")
+            .navigationBarItems(trailing: Button(action: {
+                showModal = true
+            }) {
+                Image(systemName: "plus")
+                    .font(.title)
+                    .foregroundColor(.blue)
+            })
+            .sheet(isPresented: $showModal) {
+                ModalView(selectedWorkouts: $selectedWorkouts)
+            }
+            .sheet(item: $selectedDay) { identifiableDay in
+                WorkoutDetailView(day: identifiableDay.day) // Pass only the day
+            }
         }
     }
 }
@@ -36,50 +61,44 @@ struct IdentifiableDay: Identifiable{
     let day: String
 }
 
+struct Workout: Identifiable {
+    let id = UUID()
+    let name: String
+    let weight: Int
+    let sets: Int
+    let reps: Int
+    let notes: String
+}
+
+
 struct ModalView: View {
     @Environment(\.dismiss) var dismiss
-    @State private var selectedWorkouts: [String: String] = [:] // Stores workouts or rest days for each day
-    @State private var currentWeekStart: Date = Date().startOfWeek() // Tracks start of the current week
-    @State private var selectedDay: IdentifiableDay? = nil // To track the currently selected day for input
-
+    @Binding var selectedWorkouts: [String: String]
+    @State private var selectedDay: IdentifiableDay? = nil // Stores currently selected day for editing
+    
+    private let workoutTypes = ["Rest", "Push", "Pull", "Legs"]
+    
     var body: some View {
         VStack {
-            // Header to navigate between weeks
-            HStack {
-                Button("Previous Week") {
-                    changeWeek(by: -1)
-                }
-                Spacer()
-                Text(weekRange)
-                    .font(.headline)
-                Spacer()
-                Button("Next Week") {
-                    changeWeek(by: 1)
-                }
-            }
-            .padding()
+            // Week Header
+            Text("Weekly Workout Plan")
+                .font(.largeTitle)
+                .padding()
             
-            // Days of the Week
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 20) {
-                ForEach(daysOfWeek, id: \.self) { day in
-                    VStack {
-                        Text(day)
-                            .font(.headline)
-                        
-                        Button(action: {
+            // Vertical List of Days
+            List(daysOfWeek, id: \.self) { day in
+                HStack {
+                    Text("\(day):")
+                        .font(.headline)
+                    Spacer()
+                    Text(selectedWorkouts[day] ?? "None")
+                        .foregroundColor(.gray)
+                        .onTapGesture {
                             assignWorkout(for: day)
-                        }) {
-                            Text(selectedWorkouts[day] ?? "Add")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(selectedWorkouts[day] == "Rest" ? Color.red : Color.blue.opacity(0.7))
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
                         }
-                    }
+                        .padding(.trailing)
                 }
             }
-            .padding()
             
             // Close Button
             Button("Close") {
@@ -87,36 +106,15 @@ struct ModalView: View {
             }
             .padding()
         }
-        // Workout Input Modal
+        // Workout Type Selection Modal
         .sheet(item: $selectedDay) { identifiableDay in
-            WorkoutInputView(day: identifiableDay.day, selectedWorkouts: $selectedWorkouts)
+            WorkoutTypeSelectionView(day: identifiableDay.day, selectedWorkouts: $selectedWorkouts)
         }
-
     }
     
-    // MARK: - Days of the Week
+    // List of Days
     private var daysOfWeek: [String] {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE"
-        return (0..<7).compactMap { index in
-            let date = Calendar.current.date(byAdding: .day, value: index, to: currentWeekStart)
-            return formatter.string(from: date ?? Date())
-        }
-    }
-    
-    // MARK: - Week Range
-    private var weekRange: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d"
-        let endOfWeek = Calendar.current.date(byAdding: .day, value: 6, to: currentWeekStart)!
-        return "\(formatter.string(from: currentWeekStart)) - \(formatter.string(from: endOfWeek))"
-    }
-    
-    // MARK: - Week Navigation
-    private func changeWeek(by value: Int) {
-        if let newDate = Calendar.current.date(byAdding: .weekOfYear, value: value, to: currentWeekStart) {
-            currentWeekStart = newDate
-        }
+        ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     }
     
     // MARK: - Workout Assignment
@@ -125,41 +123,37 @@ struct ModalView: View {
     }
 }
 
-struct WorkoutInputView: View {
-    let day: String
+struct WorkoutTypeSelectionView: View {
+    var day: String
     @Binding var selectedWorkouts: [String: String]
     @Environment(\.dismiss) var dismiss
-
-    @State private var inputText: String = ""
-
+    
+    let workoutTypes = ["Rest", "Push", "Pull", "Legs"]
+    
     var body: some View {
         VStack {
-            Text("Add Workout for \(day)")
-                .font(.headline)
+            Text("Select Workout for \(day)")
+                .font(.title)
                 .padding()
-
-            TextField("Enter Workout (e.g., Chest Day)", text: $inputText)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-
-            HStack {
-                Button("Cancel") {
-                    dismiss()
-                }
-                .padding()
-
-                Spacer()
-
-                Button("Save") {
-                    selectedWorkouts[day] = inputText.isEmpty ? "Rest" : inputText
+            
+            // List of Workout Types
+            List(workoutTypes, id: \.self) { type in
+                Button(type) {
+                    selectedWorkouts[day] = type
                     dismiss()
                 }
                 .padding()
             }
+            
+            // Cancel Button
+            Button("Cancel") {
+                dismiss()
+            }
+            .padding()
         }
-        .padding()
     }
 }
+
 
 // MARK: - Helper Extensions
 extension Date {
@@ -169,6 +163,95 @@ extension Date {
         return calendar.date(from: components) ?? self
     }
 }
+
+struct WorkoutDetailView: View {
+    var day: String
+    @State private var workouts: [Workout] = []
+    @State private var showAddWorkoutModal = false
+    
+    var body: some View {
+        VStack {
+            if workouts.isEmpty {
+                Text("No workouts added for \(day). Tap '+' to add one.")
+                    .foregroundColor(.gray)
+                    .padding()
+            } else {
+                List(workouts) { workout in
+                    VStack(alignment: .leading) {
+                        Text(workout.name)
+                            .font(.headline)
+                        Text("Weight: \(workout.weight) lbs, \(workout.sets) sets x \(workout.reps) reps")
+                            .font(.subheadline)
+                        if !workout.notes.isEmpty {
+                            Text("Notes: \(workout.notes)")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("\(day) Workouts")
+        .navigationBarItems(trailing: Button(action: {
+            showAddWorkoutModal = true
+        }) {
+            Image(systemName: "plus")
+                .font(.title)
+        })
+        .sheet(isPresented: $showAddWorkoutModal) {
+            AddWorkoutView(workouts: $workouts)
+        }
+    }
+}
+
+struct AddWorkoutView: View {
+    @Environment(\.dismiss) var dismiss
+    @Binding var workouts: [Workout]
+    
+    @State private var name = ""
+    @State private var weight = ""
+    @State private var sets = ""
+    @State private var reps = ""
+    @State private var notes = ""
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Workout Details")) {
+                    TextField("Workout Name", text: $name)
+                    TextField("Weight (lbs)", text: $weight)
+                        .keyboardType(.decimalPad)
+                    TextField("Sets", text: $sets)
+                        .keyboardType(.numberPad)
+                    TextField("Reps", text: $reps)
+                        .keyboardType(.numberPad)
+                }
+                
+                Section(header: Text("Notes")) {
+                    TextField("Additional Notes", text: $notes)
+                }
+            }
+            .navigationTitle("Add Workout")
+            .navigationBarItems(leading: Button("Cancel") {
+                dismiss()
+            }, trailing: Button("Save") {
+                saveWorkout()
+                dismiss()
+            })
+        }
+    }
+    
+    private func saveWorkout() {
+        guard let weight = Int(weight),
+              let sets = Int(sets),
+              let reps = Int(reps),
+              !name.isEmpty else { return }
+        
+        let newWorkout = Workout(name: name, weight: weight, sets: sets, reps: reps, notes: notes)
+        workouts.append(newWorkout)
+    }
+}
+
 
 #Preview{
     WorkoutSelectorScreen()
