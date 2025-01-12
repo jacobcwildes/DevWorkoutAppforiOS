@@ -14,6 +14,8 @@
 		16B59ACA2D316C3F00231D09 /* Workout_App_for_iOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AC92D316C3F00231D09 /* Workout_App_for_iOSTests.swift */; };
 		16B59AD42D316C3F00231D09 /* Workout_App_for_iOSUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AD32D316C3F00231D09 /* Workout_App_for_iOSUITests.swift */; };
 		16B59AD62D316C3F00231D09 /* Workout_App_for_iOSUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AD52D316C3F00231D09 /* Workout_App_for_iOSUITestsLaunchTests.swift */; };
+		16B59AE52D316D9200231D09 /* Welcome_Screen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AE42D316D9200231D09 /* Welcome_Screen.swift */; };
+		16B59AE92D31707D00231D09 /* WorkoutSelectorScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AE82D31707D00231D09 /* WorkoutSelectorScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +46,8 @@
 		16B59ACF2D316C3F00231D09 /* Workout App for iOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Workout App for iOSUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		16B59AD32D316C3F00231D09 /* Workout_App_for_iOSUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout_App_for_iOSUITests.swift; sourceTree = "<group>"; };
 		16B59AD52D316C3F00231D09 /* Workout_App_for_iOSUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Workout_App_for_iOSUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		16B59AE42D316D9200231D09 /* Welcome_Screen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Welcome_Screen.swift; sourceTree = "<group>"; };
+		16B59AE82D31707D00231D09 /* WorkoutSelectorScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSelectorScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +100,8 @@
 			children = (
 				16B59AB82D316C3D00231D09 /* Workout_App_for_iOSApp.swift */,
 				16B59ABA2D316C3D00231D09 /* ContentView.swift */,
+				16B59AE42D316D9200231D09 /* Welcome_Screen.swift */,
+				16B59AE82D31707D00231D09 /* WorkoutSelectorScreen.swift */,
 				16B59ABC2D316C3F00231D09 /* Assets.xcassets */,
 				16B59ABE2D316C3F00231D09 /* Preview Content */,
 			);
@@ -259,6 +265,8 @@
 			files = (
 				16B59ABB2D316C3D00231D09 /* ContentView.swift in Sources */,
 				16B59AB92D316C3D00231D09 /* Workout_App_for_iOSApp.swift in Sources */,
+				16B59AE92D31707D00231D09 /* WorkoutSelectorScreen.swift in Sources */,
+				16B59AE52D316D9200231D09 /* Welcome_Screen.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
