@@ -43,7 +43,7 @@ struct WorkoutSelectorScreen: View {
                     .font(.title)
             })
             .sheet(isPresented: $showAddWeekModal) {
-                AddWeekModal()
+                AddWeekModal(weekNumber: getNextWeekNumber())
                     .environment(\.managedObjectContext, viewContext)
             }
         }
@@ -68,7 +68,16 @@ struct WorkoutSelectorScreen: View {
             print("Failed to delete week: \(error.localizedDescription)")
         }
     }
+
+    private func getNextWeekNumber() -> Int {
+        // Get the next week number based on the last week in the list
+        guard let lastWeek = weeks.last else {
+            return 1 // If no weeks exist, start at week 1
+        }
+        return Int(lastWeek.weekNumber + 1)
+    }
 }
+
 
 struct WeekDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -417,60 +426,53 @@ struct AddWorkoutModal: View {
 struct AddWeekModal: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
+    var weekNumber: Int
     
-    @State private var weekNumber: Int32 = 1
-    @State private var startDate: Date = Date()
-    @State private var endDate: Date = Date()
+    @State private var startDate = Date() // Default to current date
+    @State private var endDate = Date().addingTimeInterval(60 * 60 * 24 * 7) // 7 days from start date
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Week Details")) {
-                    Stepper("Week Number: \(weekNumber)", value: $weekNumber, in: 1...52)
-                    
+                Section(header: Text("Week Information")) {
+                    Text("Week Number: \(weekNumber)")
+                        .font(.headline)
                     DatePicker("Start Date", selection: $startDate, displayedComponents: .date)
-                        .datePickerStyle(CompactDatePickerStyle())
-                    
+                        .onChange(of: startDate) { newValue in
+                            endDate = Calendar.current.date(byAdding: .day, value: 7, to: startDate) ?? Date()
+                        }
                     DatePicker("End Date", selection: $endDate, displayedComponents: .date)
-                        .datePickerStyle(CompactDatePickerStyle())
+                        .disabled(true) // End date is always 7 days after start date
+                }
+                
+                Section {
+                    Button("Save Week") {
+                        let newWeek = JWWeekEntity(context: viewContext)
+                        newWeek.weekNumber = Int32(weekNumber)
+                        newWeek.startDate = startDate
+                        newWeek.endDate = endDate
+                        saveContext()
+                        dismiss()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
-            .navigationTitle("Add Week")
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    dismiss()
-                },
-                trailing: Button("Save") {
-                    addWeek()
-                    dismiss()
-                }
-            )
+            .navigationTitle("Add New Week")
+            .navigationBarItems(leading: Button("Cancel") {
+                dismiss()
+            })
         }
     }
-    
-    private func addWeek() {
-        guard startDate <= endDate else {
-            print("Start date must be before or equal to end date.")
-            return
-        }
-        
-        let newWeek = JWWeekEntity(context: viewContext)
-        newWeek.weekNumber = weekNumber
-        newWeek.startDate = startDate
-        newWeek.endDate = endDate
-        saveContext()
-    }
-
     
     private func saveContext() {
         do {
             try viewContext.save()
-            print("Saved week successfully")
         } catch {
-            print("Failed to save new week: \(error.localizedDescription)")
+            print("Failed to save week: \(error.localizedDescription)")
         }
     }
 }
+
 
 class CoreDataStack {
     static let shared = CoreDataStack()
