@@ -9,6 +9,7 @@
     <entity name="JWWorkoutDayEntity" representedClassName="JWWorkoutDayEntity" syncable="YES" codeGenerationType="class">
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="nameAttribute" optional="YES" attributeType="String"/>
+        <relationship name="week" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="JWWeekEntity"/>
         <relationship name="workouts" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="JWWorkoutEntity"/>
     </entity>
     <entity name="JWWorkoutEntity" representedClassName="JWWorkoutEntity" syncable="YES" codeGenerationType="class">
