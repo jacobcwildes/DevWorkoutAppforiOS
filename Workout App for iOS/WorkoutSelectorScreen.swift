@@ -76,6 +76,7 @@ struct WeekDetailView: View {
     @StateObject private var viewModel: WorkoutDaysViewModel
 
     @State private var showAddWorkoutDayModal = false
+    @State private var selectedWorkoutDay: JWWorkoutDayEntity?
 
     init(week: JWWeekEntity) {
         self.week = week
@@ -90,16 +91,22 @@ struct WeekDetailView: View {
                     .padding()
             } else {
                 List {
-                    ForEach(viewModel.workoutDays, id: \.self) { workoutDay in
-                        NavigationLink(destination: WorkoutDayDetailView(workoutDay: workoutDay)) {
-                            HStack {
-                                Text(workoutDay.nameAttribute ?? "N/A")
-                                    .font(.headline)
-                                Spacer()
-                                Text("\(workoutDay.nameAttribute?.count ?? 0) Workouts")
-                                    .foregroundColor(.gray)
-                            }
+                    // Iterate over the workout days and display day and type in order
+                    ForEach(sortedWorkoutDays(), id: \.self) { workoutDay in
+                        HStack {
+                            // Display the day of the week and associated workout type
+                            Text("\(workoutDay.nameAttribute ?? "N/A"): \(workoutDay.dayType ?? "N/A")")
+                                .font(.headline)
+                            Spacer()
                         }
+                        .background(
+                            NavigationLink(
+                                destination: WorkoutDayDetailView(workoutDay: workoutDay, viewContext: viewContext) // Provide the viewContext here
+                            ) {
+                                EmptyView()
+                            }
+                            .opacity(0) // Hides the default NavigationLink appearance
+                        )
                     }
                     .onDelete(perform: deleteWorkoutDay)
                 }
@@ -114,14 +121,23 @@ struct WeekDetailView: View {
                 .font(.title)
         })
         .sheet(isPresented: $showAddWorkoutDayModal, onDismiss: {
-            viewModel.fetchWorkoutDays(for: week)
+            viewModel.fetchWorkoutDays(for: week) // Refresh the list after dismissal
         }) {
             AddWorkoutDayModal(week: week)
                 .environment(\.managedObjectContext, viewContext)
         }
-
         .onAppear {
             viewModel.fetchWorkoutDays(for: week)
+        }
+    }
+
+
+    private func sortedWorkoutDays() -> [JWWorkoutDayEntity] {
+        // Sort the workout days from Sunday to Saturday
+        let daysOrder = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        return viewModel.workoutDays.sorted {
+            guard let firstDay = $0.nameAttribute, let secondDay = $1.dayType else { return false }
+            return daysOrder.firstIndex(of: firstDay) ?? 0 < daysOrder.firstIndex(of: secondDay) ?? 0
         }
     }
 
@@ -132,7 +148,7 @@ struct WeekDetailView: View {
                 viewContext.delete(workoutDay)
             }
         saveContext()
-        viewModel.fetchWorkoutDays(for: week) // Refresh the list
+        viewModel.fetchWorkoutDays(for: week) // Refresh the list after deletion
     }
 
     private func saveContext() {
@@ -143,7 +159,6 @@ struct WeekDetailView: View {
         }
     }
 }
-
 
 class WorkoutDaysViewModel: ObservableObject {
     @Published var workoutDays: [JWWorkoutDayEntity] = []
@@ -169,18 +184,22 @@ class WorkoutDaysViewModel: ObservableObject {
 struct WorkoutDayDetailView: View {
     @ObservedObject var workoutDay: JWWorkoutDayEntity
     @State private var showAddWorkoutModal = false
-    
+    @ObservedObject private var viewModel: WorkoutsViewModel
+
+    init(workoutDay: JWWorkoutDayEntity, viewContext: NSManagedObjectContext) {
+        self.workoutDay = workoutDay
+        _viewModel = ObservedObject(wrappedValue: WorkoutsViewModel(viewContext: viewContext, workoutDay: workoutDay))
+    }
+
     var body: some View {
         VStack {
-            if let workouts = workoutDay.workouts?.allObjects as? [JWWorkoutEntity] {
-                if workouts.isEmpty {
-                    Text("No workouts added for \(workoutDay.nameAttribute ?? "this day"). Tap '+' to add one.")
-                        .foregroundColor(.gray)
-                        .padding()
-                }
+            if viewModel.workouts.isEmpty {
+                Text("No workouts added for \(workoutDay.nameAttribute ?? "this day"). Tap '+' to add one.")
+                    .foregroundColor(.gray)
+                    .padding()
             } else {
                 List {
-                    ForEach((workoutDay.workouts?.allObjects as? [JWWorkoutEntity]) ?? [], id: \.objectID) { workout in
+                    ForEach(viewModel.workouts, id: \.objectID) { workout in
                         VStack(alignment: .leading) {
                             Text(workout.name ?? "N/A")
                                 .font(.headline)
@@ -193,9 +212,8 @@ struct WorkoutDayDetailView: View {
                             }
                         }
                     }
-                    .onDelete(perform: deleteWorkout)  // Attach delete action to the list
+                    .onDelete(perform: deleteWorkout)
                 }
-                
                 Spacer()
             }
         }
@@ -207,83 +225,95 @@ struct WorkoutDayDetailView: View {
                 .font(.title)
         })
         .sheet(isPresented: $showAddWorkoutModal) {
-            AddWorkoutModal(workoutDay: workoutDay)
+            AddWorkoutModal(workoutDay: workoutDay, viewModel: viewModel) // Pass viewModel here
         }
-        
-    }
-    private func deleteWorkout(at offsets: IndexSet) {
-        // Safely get the workouts array from the NSSet
-        guard let workouts = workoutDay.workouts?.allObjects as? [JWWorkoutEntity] else { return }
-        
-        // Iterate over the selected workouts to delete
-        offsets.map { workouts[$0] }.forEach { workout in
-            workoutDay.removeFromWorkouts(workout)  // Remove from the workoutDay relationship
+        .onAppear {
+            viewModel.fetchWorkouts()
         }
-        
-        // Save the context to persist changes
-        saveContext()
     }
 
-    
+    private func deleteWorkout(at offsets: IndexSet) {
+        viewModel.deleteWorkout(at: offsets)
+    }
+}
+
+class WorkoutsViewModel: ObservableObject {
+    @Published var workouts: [JWWorkoutEntity] = []
+    private var viewContext: NSManagedObjectContext
+    private var workoutDay: JWWorkoutDayEntity
+
+    init(viewContext: NSManagedObjectContext, workoutDay: JWWorkoutDayEntity) {
+        self.viewContext = viewContext
+        self.workoutDay = workoutDay
+        fetchWorkouts()
+    }
+
+    func fetchWorkouts() {
+        let fetchRequest: NSFetchRequest<JWWorkoutEntity> = JWWorkoutEntity.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "workoutDay == %@", workoutDay)
+        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \JWWorkoutEntity.name, ascending: true)]
+
+        do {
+            workouts = try viewContext.fetch(fetchRequest)
+        } catch {
+            print("Failed to fetch workouts: \(error.localizedDescription)")
+        }
+    }
+
+    func addWorkout(workoutName: String, weight: Double, sets: Int32, reps: Int32, notes: String) {
+        let newWorkout = JWWorkoutEntity(context: viewContext)
+        newWorkout.name = workoutName
+        newWorkout.weight = weight
+        newWorkout.sets = sets
+        newWorkout.reps = reps
+        newWorkout.notes = notes
+        newWorkout.workoutDay = workoutDay
+
+        // Save the new workout
+        saveContext()
+
+        // Fetch updated workouts
+        fetchWorkouts()
+    }
+
+
+    func deleteWorkout(at offsets: IndexSet) {
+        for index in offsets {
+            let workoutToDelete = workouts[index]
+            viewContext.delete(workoutToDelete)
+        }
+        saveContext()
+
+        // Fetch updated workouts
+        fetchWorkouts()
+    }
+
     private func saveContext() {
         do {
-            try workoutDay.managedObjectContext?.save()
+            try viewContext.save()
+            print("Workouts saved")
         } catch {
-            print("Failed to delete workout: \(error.localizedDescription)")
+            print("Failed to save workouts: \(error.localizedDescription)")
         }
     }
 }
+
 
 struct AddWorkoutDayModal: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
     @ObservedObject var week: JWWeekEntity
-    
-    @State private var selectedDayIndex: Int? = nil
-    @State private var dayType: String = ""
-    
-    @FetchRequest var fetchRequest: FetchedResults<JWWorkoutDayEntity>
 
-    init(week: JWWeekEntity) {
-        self.week = week
-        _fetchRequest = FetchRequest(
-            entity: JWWorkoutDayEntity.entity(),
-            sortDescriptors: [NSSortDescriptor(keyPath: \JWWorkoutDayEntity.nameAttribute, ascending: true)],
-            predicate: NSPredicate(format: "week == %@", week) // Assuming a "week" relationship exists
-        )
-    }
-
+    @State private var dayTypes: [String] = Array(repeating: "", count: 7)
     
-    // Create an array of days of the week
     private let daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     
     var body: some View {
         NavigationView {
             Form {
-                // Display the list of days from Sunday to Saturday
-                Section(header: Text("Select a Day")) {
-                    List(0..<daysOfWeek.count, id: \.self) { index in
-                        Button(action: {
-                            // When a day is tapped, set it as the selected day
-                            selectedDayIndex = index
-                            dayType = "" // Reset day type for new selection
-                        }) {
-                            HStack {
-                                Text(daysOfWeek[index])
-                                Spacer()
-                                if selectedDayIndex == index {
-                                    Text(dayType.isEmpty ? "Set Type" : dayType)
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if selectedDayIndex != nil {
-                    // Allow entering a day type when a day is selected
-                    Section(header: Text("Set Day Type")) {
-                        TextField("Enter day type (e.g., push, pull, legs)", text: $dayType)
+                ForEach(0..<daysOfWeek.count, id: \.self) { index in
+                    Section(header: Text("\(daysOfWeek[index])")) {
+                        TextField("Enter day type (e.g., Push, Rest)", text: $dayTypes[index])
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                     }
@@ -296,100 +326,77 @@ struct AddWorkoutDayModal: View {
                             dismiss()
                         }
                         Spacer()
-                        Button("Save") {
-                            addWorkoutDay()
+                        Button("Save All") {
+                            addWorkoutDays()
                             dismiss()
                         }
-                        .disabled(dayType.isEmpty) // Disable if day type is empty
+                        .disabled(dayTypes.allSatisfy { $0.isEmpty }) // Disable if all types are empty
                     }
                 }
             }
-            .navigationTitle("Add Workout Day")
+            .navigationTitle("Add Workout Days")
             .navigationBarItems(leading: Button("Cancel") {
                 dismiss()
             })
         }
     }
     
-    private func addWorkoutDay() {
-        guard selectedDayIndex != nil else {
-            print("No day selected")
-            return
+    private func addWorkoutDays() {
+        for (index, dayType) in dayTypes.enumerated() {
+            guard !dayType.isEmpty else { continue }
+            
+            let newWorkoutDay = JWWorkoutDayEntity(context: viewContext)
+            newWorkoutDay.nameAttribute = daysOfWeek[index]
+            newWorkoutDay.dayType = dayType
+            newWorkoutDay.week = week
         }
-        
-        // Create a new Workout Day entity for the selected day
-        let newWorkoutDay = JWWorkoutDayEntity(context: viewContext)
-        newWorkoutDay.nameAttribute = dayType
-        newWorkoutDay.id = UUID()
-        
-        newWorkoutDay.week = week
-        
-        // Save the context to persist the new workout day
         saveContext()
-
-        // Notify the parent view (if necessary) that the data has changed
-        dismiss() // Dismiss the modal after saving
     }
-
-
     
     private func saveContext() {
         do {
             try viewContext.save()
-            print("Saved workout day successfully")
         } catch {
-            print("Failed to save workout day: \(error.localizedDescription)")
+            print("Failed to save workout days: \(error.localizedDescription)")
         }
     }
 }
+
 struct AddWorkoutModal: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
     @ObservedObject var workoutDay: JWWorkoutDayEntity
+    @ObservedObject var viewModel: WorkoutsViewModel
     @State private var workoutName: String = ""
     @State private var weight: Double = 0
     @State private var sets: Int32 = 0
     @State private var reps: Int32 = 0
     @State private var notes: String = ""
-    
+
     var body: some View {
         NavigationView {
             Form {
-                TextField("Workout Name", text: $workoutName)
-                Stepper("Weight: \(weight, specifier: "%.1f") lbs", value: $weight, in: 0...1000, step: 2.5)
-                Stepper("Sets: \(sets)", value: $sets, in: 0...10)
-                Stepper("Reps: \(reps)", value: $reps, in: 0...50)
-                TextField("Notes", text: $notes)
+                Section(header: Text("Workout Day: \(workoutDay.nameAttribute ?? "Unknown")")) {
+                    Text("Type: \(workoutDay.dayType ?? "No Type")")
+                        .foregroundColor(.gray)
+                }
+                
+                Section(header: Text("Add New Workout")) {
+                    TextField("Workout Name", text: $workoutName)
+                    Stepper("Weight: \(weight, specifier: "%.1f") lbs", value: $weight, in: 0...1000, step: 2.5)
+                    Stepper("Sets: \(sets)", value: $sets, in: 0...10)
+                    Stepper("Reps: \(reps)", value: $reps, in: 0...50)
+                    TextField("Notes", text: $notes)
+                }
             }
             .navigationTitle("Add Workout")
             .navigationBarItems(leading: Button("Cancel") {
                 dismiss()
             }, trailing: Button("Save") {
-                addWorkout()
+                // Use the viewModel's addWorkout method
+                viewModel.addWorkout(workoutName: workoutName, weight: weight, sets: sets, reps: reps, notes: notes)
                 dismiss()
             })
-        }
-    }
-    
-    private func addWorkout() {
-        let newWorkout = JWWorkoutEntity(context: viewContext)
-        newWorkout.name = workoutName
-        newWorkout.weight = weight
-        newWorkout.sets = sets
-        newWorkout.reps = reps
-        newWorkout.notes = notes
-        
-        // Access workoutDay directly, not the Binding
-        workoutDay.addToWorkouts(newWorkout)
-        
-        saveContext()
-    }
-
-    private func saveContext() {
-        do {
-            try viewContext.save()
-        } catch {
-            print("Failed to save workout: \(error.localizedDescription)")
         }
     }
 }

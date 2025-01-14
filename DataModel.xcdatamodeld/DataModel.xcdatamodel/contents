@@ -7,6 +7,7 @@
         <relationship name="workouts" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="JWWorkoutEntity" inverseName="week" inverseEntity="JWWorkoutEntity"/>
     </entity>
     <entity name="JWWorkoutDayEntity" representedClassName="JWWorkoutDayEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="dayType" optional="YES" attributeType="String"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="nameAttribute" optional="YES" attributeType="String"/>
         <relationship name="week" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="JWWeekEntity"/>

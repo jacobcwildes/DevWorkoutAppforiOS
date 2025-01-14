@@ -18,6 +18,7 @@ extension JWWorkoutDayEntity {
 
     @NSManaged public var nameAttribute: String?
     @NSManaged public var id: UUID?
+    @NSManaged public var dayType: String?
     @NSManaged public var workouts: NSSet?
     @NSManaged public var week: JWWeekEntity?
 
