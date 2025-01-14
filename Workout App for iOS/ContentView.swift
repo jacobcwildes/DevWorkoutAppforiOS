@@ -13,12 +13,12 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             WelcomeScreen()  //Show the WelcomeScreen as the initial view
-                .environment(\.managedObjectContext, persistenceController.context)
+                /*)/.environment(\.managedObjectContext, persistenceController.context)
                 .onChange(of: persistenceController.context.hasChanges) { newValue in
                     if newValue {
                         persistenceController.saveContext()
                     }
-                }
+                }*/
         }
     }
 }

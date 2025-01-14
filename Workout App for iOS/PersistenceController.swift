@@ -9,7 +9,7 @@ struct PersistenceController {
     let container: NSPersistentContainer
 
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "WorkoutModel") // Replace with your model name
+        container = NSPersistentContainer(name: "DataModel") // Name of the .xcdatamodel used for core data
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         }

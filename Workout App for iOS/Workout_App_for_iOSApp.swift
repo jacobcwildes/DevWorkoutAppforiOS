@@ -12,6 +12,7 @@ struct Workout_App_for_iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\.managedObjectContext, PersistenceController.shared.context)
         }
     }
 }
