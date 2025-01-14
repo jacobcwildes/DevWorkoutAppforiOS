@@ -2,7 +2,7 @@
 //  JWWorkoutEntity+CoreDataProperties.swift
 //  Workout App for iOS
 //
-//  Created by Jacob Wildes on 1/13/25.
+//  Created by Jacob Wildes on 1/14/25.
 //
 //
 
@@ -19,9 +19,9 @@ extension JWWorkoutEntity {
     @NSManaged public var date: Date?
     @NSManaged public var name: String?
     @NSManaged public var notes: String?
-    @NSManaged public var reps: Int32
-    @NSManaged public var sets: Int32
-    @NSManaged public var weight: Double
+    @NSManaged public var reps: String
+    @NSManaged public var sets: String
+    @NSManaged public var weight: String?
     @NSManaged public var week: JWWeekEntity?
     @NSManaged public var workoutDay: JWWorkoutDayEntity?
 

@@ -17,9 +17,9 @@
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
-        <attribute name="reps" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="sets" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="weight" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="reps" optional="YES" attributeType="String"/>
+        <attribute name="sets" optional="YES" attributeType="String"/>
+        <attribute name="weight" optional="YES" attributeType="String"/>
         <relationship name="week" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="JWWeekEntity" inverseName="workouts" inverseEntity="JWWeekEntity"/>
         <relationship name="workoutDay" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="JWWorkoutDayEntity"/>
     </entity>

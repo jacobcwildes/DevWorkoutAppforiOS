@@ -203,7 +203,7 @@ struct WorkoutDayDetailView: View {
                         VStack(alignment: .leading) {
                             Text(workout.name ?? "N/A")
                                 .font(.headline)
-                            Text("Weight: \(workout.weight) lbs, \(workout.sets) sets x \(workout.reps) reps")
+                            Text("Weight: \(workout.weight ?? "N/A") lbs, \(String(workout.sets)) sets x \(String(workout.reps)) reps")
                                 .font(.subheadline)
                             if let notes = workout.notes, !notes.isEmpty {
                                 Text("Notes: \(notes)")
@@ -260,7 +260,7 @@ class WorkoutsViewModel: ObservableObject {
         }
     }
 
-    func addWorkout(workoutName: String, weight: Double, sets: Int32, reps: Int32, notes: String) {
+    func addWorkout(workoutName: String, weight: String, sets: String, reps: String, notes: String) {
         let newWorkout = JWWorkoutEntity(context: viewContext)
         newWorkout.name = workoutName
         newWorkout.weight = weight
@@ -356,6 +356,7 @@ struct AddWorkoutDayModal: View {
     private func saveContext() {
         do {
             try viewContext.save()
+            print("Saved workout day type successfully")
         } catch {
             print("Failed to save workout days: \(error.localizedDescription)")
         }
@@ -368,9 +369,9 @@ struct AddWorkoutModal: View {
     @ObservedObject var workoutDay: JWWorkoutDayEntity
     @ObservedObject var viewModel: WorkoutsViewModel
     @State private var workoutName: String = ""
-    @State private var weight: Double = 0
-    @State private var sets: Int32 = 0
-    @State private var reps: Int32 = 0
+    @State private var weight: String = ""  // Keep as String for user input
+    @State private var sets: String = ""  // Keep as String for user input
+    @State private var reps: String = ""  // Keep as String for user input
     @State private var notes: String = ""
 
     var body: some View {
@@ -383,9 +384,20 @@ struct AddWorkoutModal: View {
                 
                 Section(header: Text("Add New Workout")) {
                     TextField("Workout Name", text: $workoutName)
-                    Stepper("Weight: \(weight, specifier: "%.1f") lbs", value: $weight, in: 0...1000, step: 2.5)
-                    Stepper("Sets: \(sets)", value: $sets, in: 0...10)
-                    Stepper("Reps: \(reps)", value: $reps, in: 0...50)
+                    
+                    // Weight input as text field
+                    TextField("Weight (lbs)", text: $weight)
+                        .keyboardType(.decimalPad) // Allow decimal input for weight
+                    
+                    // Sets input as text field
+                    TextField("Sets", text: $sets)
+                        .keyboardType(.numberPad) // Allow only numbers for sets
+                    
+                    // Reps input as text field
+                    TextField("Reps", text: $reps)
+                        .keyboardType(.numberPad) // Allow only numbers for reps
+                    
+                    // Notes input as text field
                     TextField("Notes", text: $notes)
                 }
             }
@@ -394,12 +406,13 @@ struct AddWorkoutModal: View {
                 dismiss()
             }, trailing: Button("Save") {
                 // Use the viewModel's addWorkout method
-                viewModel.addWorkout(workoutName: workoutName, weight: weight, sets: sets, reps: reps, notes: notes)
-                dismiss()
+                    viewModel.addWorkout(workoutName: workoutName, weight: weight, sets: sets, reps: reps, notes: notes)
+                    dismiss()
             })
         }
     }
 }
+
 
 struct AddWeekModal: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -452,6 +465,7 @@ struct AddWeekModal: View {
     private func saveContext() {
         do {
             try viewContext.save()
+            print("Saved week successfully")
         } catch {
             print("Failed to save new week: \(error.localizedDescription)")
         }
