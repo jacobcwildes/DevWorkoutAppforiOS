@@ -144,9 +144,17 @@ struct WeekDetailView: View {
     private func sortedWorkoutDays() -> [JWWorkoutDayEntity] {
         // Sort the workout days from Sunday to Saturday
         let daysOrder = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-        return viewModel.workoutDays.sorted {
-            guard let firstDay = $0.nameAttribute, let secondDay = $1.dayType else { return false }
-            return daysOrder.firstIndex(of: firstDay) ?? 0 < daysOrder.firstIndex(of: secondDay) ?? 0
+        
+        return viewModel.workoutDays.sorted { firstDay, secondDay in
+            guard let firstDayName = firstDay.nameAttribute, let secondDayName = secondDay.nameAttribute else {
+                return false
+            }
+            
+            // Get the index of the day in the daysOrder array to compare correctly
+            let firstDayIndex = daysOrder.firstIndex(of: firstDayName) ?? 0
+            let secondDayIndex = daysOrder.firstIndex(of: secondDayName) ?? 0
+            
+            return firstDayIndex < secondDayIndex
         }
     }
 

@@ -11,6 +11,8 @@ struct WelcomeScreen: View {
     
     var body: some View {
         VStack {
+            Spacer()
+            
             Text("Welcome to the Workout App")
                 .font(.largeTitle)
                 .padding()
@@ -24,6 +26,12 @@ struct WelcomeScreen: View {
                     .foregroundColor(.white)
                     .cornerRadius(10)
             }
+            Spacer()
+            
+            Text("Built by Jacob Wildes")
+                .foregroundColor(.red)
+                .font(.footnote)
+                .padding(.bottom, 5)
         }
         .navigationTitle("Welcome")
         .padding()
