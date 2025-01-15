@@ -19,7 +19,7 @@ struct WelcomeScreen: View {
             
             // Button to navigate
             NavigationLink(destination: WorkoutSelectorScreen()) {
-                Text("Start Workout")
+                Text("Begin!")
                     .font(.title)
                     .padding()
                     .background(Color.blue)

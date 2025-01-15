@@ -1,0 +1,41 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2709
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Steps to use AltServer and AltCloud to automatically manage certificates for free Apple Developer Licenses:\
+\
+Install AltServer on a Mac device from here: https://altstore.io/\
+\
+It is also necessary to move the application into the Mac\'92s Applications folder\
+\
+Then, plug in your iPhone to your Mac. \
+\
+In the top menu bar, click the icon and then:\
+	Install AltStore-><Your Device>\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 I like to have it launch at login, so I select that option as well. \
+\
+NOTE* This is where things get weird. Instead of directly pushing the app from Xcode to the iPhone, we make our own .ipa file to pass to AltStore so that it will maintain the certificate automatically. I have found that sideloading an app and then pulling that app down from Xcode onto your device makes two of the same app.\
+\
+To remedy this, open Xcode->Menu Bar Xcode->Settings->Locations->Derived Data (hit the small gray arrow next to the directory)-><Your File Name>-<Some random Suffix>->Build->Products->Debug->iphoneos-><Your App name.App>\
+\
+I then make a folder right on the Desktop called \'93Payload\'94\
+NOTE* It MUST be called \'93Payload\'94 case sensitive, or it will not work\
+\
+Drag and drop the <App Name>.App from the Derived Files folder into the Payload folder. \
+\
+Zip the Payload folder\
+\
+Rename the extension from .zip to .ipa\
+\
+With the iPhone still plugged in, copy the Payload.ipa from the Mac to the files of the iPhone\
+\
+Open the AltStore on your iPhone.\
+\
+Bottom Nav Bar My Apps-> \'93+\'94 (Just above \'93My Apps\'94)-> <Your Payload>.ipa\
+\
+It may take a few moments, but afterward AltStore will install/update your app without creating a duplicate and without data loss!}
