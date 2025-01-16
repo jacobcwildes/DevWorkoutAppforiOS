@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22225" systemVersion="22H221" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22225" systemVersion="22H313" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="JWWeekEntity" representedClassName="JWWeekEntity" syncable="YES" codeGenerationType="class">
         <attribute name="endDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="startDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -22,5 +22,8 @@
         <attribute name="weight" optional="YES" attributeType="String"/>
         <relationship name="week" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="JWWeekEntity" inverseName="workouts" inverseEntity="JWWeekEntity"/>
         <relationship name="workoutDay" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="JWWorkoutDayEntity"/>
+    </entity>
+    <entity name="JWWorkoutEntryEntity" representedClassName="JWWorkoutEntryEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="entry" optional="YES" attributeType="String"/>
     </entity>
 </model>

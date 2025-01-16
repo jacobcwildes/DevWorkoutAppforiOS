@@ -25,6 +25,8 @@
 		16B59AD42D316C3F00231D09 /* Workout_App_for_iOSUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AD32D316C3F00231D09 /* Workout_App_for_iOSUITests.swift */; };
 		16B59AD62D316C3F00231D09 /* Workout_App_for_iOSUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AD52D316C3F00231D09 /* Workout_App_for_iOSUITestsLaunchTests.swift */; };
 		16B59AED2D34213400231D09 /* CoreData.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 16B59AEB2D34211F00231D09 /* CoreData.framework */; };
+		16EAEBE52D389A3B00A504D8 /* JWWorkoutEntryEntity+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16EAEBE32D389A3B00A504D8 /* JWWorkoutEntryEntity+CoreDataClass.swift */; };
+		16EAEBE62D389A3B00A504D8 /* JWWorkoutEntryEntity+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16EAEBE42D389A3B00A504D8 /* JWWorkoutEntryEntity+CoreDataProperties.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +68,8 @@
 		16B59AEB2D34211F00231D09 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		16B59AF12D34218600231D09 /* DataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = DataModel.xcdatamodel; sourceTree = "<group>"; };
 		16B59AF32D3421F400231D09 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		16EAEBE32D389A3B00A504D8 /* JWWorkoutEntryEntity+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JWWorkoutEntryEntity+CoreDataClass.swift"; sourceTree = "<group>"; };
+		16EAEBE42D389A3B00A504D8 /* JWWorkoutEntryEntity+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JWWorkoutEntryEntity+CoreDataProperties.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +101,8 @@
 		16B59AAC2D316C3D00231D09 = {
 			isa = PBXGroup;
 			children = (
+				16EAEBE32D389A3B00A504D8 /* JWWorkoutEntryEntity+CoreDataClass.swift */,
+				16EAEBE42D389A3B00A504D8 /* JWWorkoutEntryEntity+CoreDataProperties.swift */,
 				16B1AE7A2D36BD030075096C /* JWWorkoutEntity+CoreDataClass.swift */,
 				16B1AE7B2D36BD030075096C /* JWWorkoutEntity+CoreDataProperties.swift */,
 				16B1AE762D36A81C0075096C /* JWWorkoutDayEntity+CoreDataClass.swift */,
@@ -300,8 +306,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				16EAEBE62D389A3B00A504D8 /* JWWorkoutEntryEntity+CoreDataProperties.swift in Sources */,
 				16B1AE522D35A05F0075096C /* Workout_App_for_iOSApp.swift in Sources */,
 				16B1AE7C2D36BD030075096C /* JWWorkoutEntity+CoreDataClass.swift in Sources */,
+				16EAEBE52D389A3B00A504D8 /* JWWorkoutEntryEntity+CoreDataClass.swift in Sources */,
 				16B1AE792D36A81C0075096C /* JWWorkoutDayEntity+CoreDataProperties.swift in Sources */,
 				16B1AE532D35A05F0075096C /* ContentView.swift in Sources */,
 				16B1AE7D2D36BD030075096C /* JWWorkoutEntity+CoreDataProperties.swift in Sources */,

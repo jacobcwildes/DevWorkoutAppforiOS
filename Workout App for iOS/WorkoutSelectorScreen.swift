@@ -385,47 +385,140 @@ struct AddWorkoutModal: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var workoutDay: JWWorkoutDayEntity
     @ObservedObject var viewModel: WorkoutsViewModel
+    
     @State private var workoutName: String = ""
     @State private var weight: String = ""  // Keep as String for user input
-    @State private var sets: String = ""  // Keep as String for user input
-    @State private var reps: String = ""  // Keep as String for user input
+    @State private var sets: String = ""    // Keep as String for user input
+    @State private var reps: String = ""    // Keep as String for user input
     @State private var notes: String = ""
-
+    
+    @State private var suggestions: [JWWorkoutEntryEntity] = []
+    @State private var showSuggestions: Bool = false
+    
     var body: some View {
         NavigationView {
-            Form {
-                Section(header: Text("Workout Day: \(workoutDay.nameAttribute ?? "Unknown")")) {
-                    Text("Type: \(workoutDay.dayType ?? "No Type")")
-                        .foregroundColor(.gray)
+            VStack {
+                Form {
+                    Section(header: Text("Workout Day: \(workoutDay.nameAttribute ?? "Unknown")")) {
+                        Text("Type: \(workoutDay.dayType ?? "No Type")")
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Section(header: Text("Add New Workout")) {
+                        VStack(alignment: .leading) {
+                            // Workout Name Input with Predictive Text
+                            TextField("Workout Name", text: $workoutName)
+                                .onChange(of: workoutName) { newValue in
+                                    fetchSuggestions(for: newValue)
+                                }
+                                .autocapitalization(.none) // Ensure case-insensitive behavior in input
+                                .disableAutocorrection(true) // Avoid unwanted autocorrections
+                            
+                            // Display Suggestions
+                            if showSuggestions {
+                                List(suggestions, id: \.self) { suggestion in
+                                    Button(action: {
+                                        workoutName = suggestion.entry ?? ""
+                                        showSuggestions = false
+                                    }) {
+                                        Text(suggestion.entry ?? "Unnamed Workout")
+                                    }
+                                }
+                                .frame(maxHeight: 150) // Limit the height of the suggestion list
+                            }
+                        }
+                        
+                        // Weight input
+                        TextField("Weight (lbs)", text: $weight)
+                            .keyboardType(.decimalPad)
+                        
+                        // Sets input
+                        TextField("Sets", text: $sets)
+                            .keyboardType(.numberPad)
+                        
+                        // Reps input
+                        TextField("Reps", text: $reps)
+                            .keyboardType(.numberPad)
+                        
+                        // Notes input
+                        TextField("Notes", text: $notes)
+                    }
                 }
-                
-                Section(header: Text("Add New Workout")) {
-                    TextField("Workout Name", text: $workoutName)
-                    
-                    // Weight input as text field
-                    TextField("Weight (lbs)", text: $weight)
-                        .keyboardType(.decimalPad) // Allow decimal input for weight
-                    
-                    // Sets input as text field
-                    TextField("Sets", text: $sets)
-                        .keyboardType(.numberPad) // Allow only numbers for sets
-                    
-                    // Reps input as text field
-                    TextField("Reps", text: $reps)
-                        .keyboardType(.numberPad) // Allow only numbers for reps
-                    
-                    // Notes input as text field
-                    TextField("Notes", text: $notes)
-                }
+                .navigationTitle("Add Workout")
+                .navigationBarItems(
+                    leading: Button("Cancel") { dismiss() },
+                    trailing: Button("Save") {
+                        saveWorkout()
+                    }
+                )
             }
-            .navigationTitle("Add Workout")
-            .navigationBarItems(leading: Button("Cancel") {
-                dismiss()
-            }, trailing: Button("Save") {
-                // Use the viewModel's addWorkout method
-                    viewModel.addWorkout(workoutName: workoutName, weight: weight, sets: sets, reps: reps, notes: notes)
-                    dismiss()
-            })
+        }
+    }
+    
+    /// Save the workout and add it to Core Data
+    private func saveWorkout() {
+        guard !workoutName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            print("Workout name cannot be empty.")
+            return
+        }
+        
+        // Save the workout to the workoutDay via viewModel
+        viewModel.addWorkout(workoutName: workoutName, weight: weight, sets: sets, reps: reps, notes: notes)
+        
+        // Save the workout name to suggestions in Core Data
+        addWorkoutNameToSuggestions(workoutName: workoutName)
+        
+        // Dismiss the modal
+        dismiss()
+    }
+    
+    /// Add the workout name to suggestions in Core Data
+    private func addWorkoutNameToSuggestions(workoutName: String) {
+        let trimmedName = workoutName.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Check if the workout already exists
+        let fetchRequest: NSFetchRequest<JWWorkoutEntryEntity> = JWWorkoutEntryEntity.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "entry ==[cd] %@", trimmedName)
+        
+        do {
+            let existingEntries = try viewContext.fetch(fetchRequest)
+            if existingEntries.isEmpty {
+                // Create a new entry if none exists
+                let newEntry = JWWorkoutEntryEntity(context: viewContext)
+                newEntry.entry = trimmedName
+                
+                // Save the context
+                try viewContext.save()
+                print("Saved workout name to Core Data: \(trimmedName)")
+            } else {
+                print("Workout name already exists in Core Data: \(trimmedName)")
+            }
+        } catch {
+            print("Error saving workout name to Core Data: \(error)")
+        }
+    }
+    
+    /// Fetch suggestions from Core Data
+    private func fetchSuggestions(for input: String) {
+        let trimmedInput = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedInput.isEmpty else {
+            suggestions = []
+            showSuggestions = false
+            return
+        }
+        
+        let fetchRequest: NSFetchRequest<JWWorkoutEntryEntity> = JWWorkoutEntryEntity.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "entry CONTAINS[cd] %@", trimmedInput)
+        fetchRequest.fetchLimit = 10 // Limit suggestions to 10
+        
+        do {
+            suggestions = try viewContext.fetch(fetchRequest)
+            showSuggestions = !suggestions.isEmpty
+        } catch {
+            print("Error fetching suggestions: \(error)")
+            suggestions = []
+            showSuggestions = false
         }
     }
 }
