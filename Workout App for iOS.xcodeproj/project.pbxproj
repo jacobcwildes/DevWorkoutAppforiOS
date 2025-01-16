@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		161A86DC2D39506000F9EF2C /* GraphView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 161A86DB2D39506000F9EF2C /* GraphView.swift */; };
+		161A86DE2D39509400F9EF2C /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 161A86DD2D39509400F9EF2C /* NutritionView.swift */; };
 		16B1AE522D35A05F0075096C /* Workout_App_for_iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AB82D316C3D00231D09 /* Workout_App_for_iOSApp.swift */; };
 		16B1AE532D35A05F0075096C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59ABA2D316C3D00231D09 /* ContentView.swift */; };
 		16B1AE542D35A05F0075096C /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16B59AF32D3421F400231D09 /* PersistenceController.swift */; };
@@ -47,6 +49,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		161A86DB2D39506000F9EF2C /* GraphView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphView.swift; sourceTree = "<group>"; };
+		161A86DD2D39509400F9EF2C /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		16B1AE632D361E920075096C /* JWWeekEntity+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JWWeekEntity+CoreDataClass.swift"; sourceTree = "<group>"; };
 		16B1AE642D361E920075096C /* JWWeekEntity+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JWWeekEntity+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		16B1AE762D36A81C0075096C /* JWWorkoutDayEntity+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JWWorkoutDayEntity+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -131,6 +135,8 @@
 		16B59AB72D316C3D00231D09 /* Workout App for iOS */ = {
 			isa = PBXGroup;
 			children = (
+				161A86DD2D39509400F9EF2C /* NutritionView.swift */,
+				161A86DB2D39506000F9EF2C /* GraphView.swift */,
 				16B59AB82D316C3D00231D09 /* Workout_App_for_iOSApp.swift */,
 				16B59ABA2D316C3D00231D09 /* ContentView.swift */,
 				16B59AF32D3421F400231D09 /* PersistenceController.swift */,
@@ -315,6 +321,8 @@
 				16B1AE7D2D36BD030075096C /* JWWorkoutEntity+CoreDataProperties.swift in Sources */,
 				16B1AE542D35A05F0075096C /* PersistenceController.swift in Sources */,
 				16B1AE782D36A81C0075096C /* JWWorkoutDayEntity+CoreDataClass.swift in Sources */,
+				161A86DE2D39509400F9EF2C /* NutritionView.swift in Sources */,
+				161A86DC2D39506000F9EF2C /* GraphView.swift in Sources */,
 				16B1AE692D361E920075096C /* JWWeekEntity+CoreDataClass.swift in Sources */,
 				16B1AE6A2D361E920075096C /* JWWeekEntity+CoreDataProperties.swift in Sources */,
 				16B1AE552D35A05F0075096C /* Welcome_Screen.swift in Sources */,
