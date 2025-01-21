@@ -409,24 +409,40 @@ struct AddWorkoutModal: View {
                             // Workout Name Input with Predictive Text
                             TextField("Workout Name", text: $workoutName)
                                 .onChange(of: workoutName) { newValue in
-                                    fetchSuggestions(for: newValue)
+                                    fetchSuggestions(for: newValue) // Fetch suggestions as the user types
                                 }
                                 .autocapitalization(.none) // Ensure case-insensitive behavior in input
                                 .disableAutocorrection(true) // Avoid unwanted autocorrections
                             
                             // Display Suggestions
                             if showSuggestions {
-                                List(suggestions, id: \.self) { suggestion in
-                                    Button(action: {
-                                        workoutName = suggestion.entry ?? ""
-                                        showSuggestions = false
-                                    }) {
-                                        Text(suggestion.entry ?? "Unnamed Workout")
+                                ScrollView { // Allows the list to scroll if there are many suggestions
+                                    LazyVStack(alignment: .leading, spacing: 4) {
+                                        ForEach(suggestions, id: \.self) { suggestion in
+                                            Button(action: {
+                                                workoutName = suggestion.entry ?? ""
+                                                showSuggestions = false // Hide suggestions after selection
+                                            }) {
+                                                Text(suggestion.entry ?? "Unnamed Workout")
+                                                    .foregroundColor(.primary)
+                                                    .padding(.vertical, 8)
+                                                    .padding(.horizontal, 12)
+                                                    .background(Color(.systemGray6))
+                                                    .cornerRadius(6)
+                                                    .frame(maxWidth: .infinity, alignment: .leading) // Ensure text is left-aligned
+                                            }
+                                            //.buttonStyle(PlainButtonStyle()) // Remove default button styling
+                                        }
                                     }
+                                    .padding(.horizontal, 4)
                                 }
                                 .frame(maxHeight: 150) // Limit the height of the suggestion list
+                                .background(Color.white)
+                                .cornerRadius(8)
+                                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                             }
                         }
+
                         
                         // Weight input
                         TextField("Weight (lbs)", text: $weight)
