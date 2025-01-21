@@ -37,7 +37,7 @@ struct Workout_App_for_iOSApp: App {
                 
                 SettingsView()
                     .tabItem {
-                        Label("Settinngs", systemImage: "gear")
+                        Label("Settings", systemImage: "gear")
                 }
             }
         }
@@ -50,7 +50,6 @@ struct Workout_App_for_iOSApp: App {
                 VStack {
                     WelcomeScreen()
                 }
-                .navigationTitle("Workouts")
             }
         }
     }
@@ -61,7 +60,6 @@ struct Workout_App_for_iOSApp: App {
                 VStack {
                     GraphView()
                 }
-                .navigationTitle("Graphs")
             }
         }
     }
@@ -72,7 +70,6 @@ struct Workout_App_for_iOSApp: App {
                 VStack {
                     NutritionView()
                 }
-                .navigationTitle("Diet")
             }
         }
     }
@@ -83,7 +80,6 @@ struct Workout_App_for_iOSApp: App {
                 VStack {
                     Settings()
                 }
-                .navigationTitle("Settings")
             }
         }
     }

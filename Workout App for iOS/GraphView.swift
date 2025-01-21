@@ -20,7 +20,7 @@ struct GraphView: View {
         NavigationView {
             VStack {
                 if selectedWorkouts.isEmpty {
-                    Text("No graphs selected. Tap '+' to add a workout.")
+                    Text("No graphs selected. Tap '+' to add a graph.")
                         .foregroundColor(.gray)
                         .padding()
                 } else {
@@ -101,6 +101,10 @@ struct WorkoutGraph: View {
                         let workout = workouts[index]
                         if let weight = Float(workout.weight ?? "") {
                             LineMark(
+                                x: .value("Order", index), // Use index for X-axis (most recent will be on the right)
+                                y: .value("Weight", weight)
+                            )
+                            PointMark(
                                 x: .value("Order", index), // Use index for X-axis (most recent will be on the right)
                                 y: .value("Weight", weight)
                             )
