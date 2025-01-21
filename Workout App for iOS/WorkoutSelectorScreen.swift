@@ -268,7 +268,9 @@ class WorkoutsViewModel: ObservableObject {
     func fetchWorkouts() {
         let fetchRequest: NSFetchRequest<JWWorkoutEntity> = JWWorkoutEntity.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "workoutDay == %@", workoutDay)
-        fetchRequest.sortDescriptors = [NSSortDescriptor(keyPath: \JWWorkoutEntity.name, ascending: true)]
+        
+        // Sort by objectID, which correlates with the row insertion order in the database
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "objectID", ascending: true)]
 
         do {
             workouts = try viewContext.fetch(fetchRequest)
@@ -276,6 +278,7 @@ class WorkoutsViewModel: ObservableObject {
             print("Failed to fetch workouts: \(error.localizedDescription)")
         }
     }
+
 
     func addWorkout(workoutName: String, weight: String, sets: String, reps: String, notes: String) {
         let newWorkout = JWWorkoutEntity(context: viewContext)
