@@ -2,7 +2,7 @@
 //  JWWorkoutEntryEntity+CoreDataClass.swift
 //  Workout App for iOS
 //
-//  Created by Jacob Wildes on 1/15/25.
+//  Created by Jacob Wildes on 1/21/25.
 //
 //
 

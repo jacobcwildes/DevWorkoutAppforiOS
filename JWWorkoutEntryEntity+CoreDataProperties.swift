@@ -2,7 +2,7 @@
 //  JWWorkoutEntryEntity+CoreDataProperties.swift
 //  Workout App for iOS
 //
-//  Created by Jacob Wildes on 1/15/25.
+//  Created by Jacob Wildes on 1/21/25.
 //
 //
 
@@ -17,6 +17,24 @@ extension JWWorkoutEntryEntity {
     }
 
     @NSManaged public var entry: String?
+    @NSManaged public var workoutEntry: NSSet?
+
+}
+
+// MARK: Generated accessors for workoutEntry
+extension JWWorkoutEntryEntity {
+
+    @objc(addWorkoutEntryObject:)
+    @NSManaged public func addToWorkoutEntry(_ value: JWWorkoutEntity)
+
+    @objc(removeWorkoutEntryObject:)
+    @NSManaged public func removeFromWorkoutEntry(_ value: JWWorkoutEntity)
+
+    @objc(addWorkoutEntry:)
+    @NSManaged public func addToWorkoutEntry(_ values: NSSet)
+
+    @objc(removeWorkoutEntry:)
+    @NSManaged public func removeFromWorkoutEntry(_ values: NSSet)
 
 }
 

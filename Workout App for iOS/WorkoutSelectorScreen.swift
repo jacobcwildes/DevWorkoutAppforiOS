@@ -220,7 +220,8 @@ struct WorkoutDayDetailView: View {
                         VStack(alignment: .leading) {
                             Text(workout.name ?? "N/A")
                                 .font(.headline)
-                            Text("Weight: \(workout.weight ?? "N/A") lbs, \(String(workout.sets)) sets x \(String(workout.reps)) reps")
+                            Text("Weight: \(workout.weight ?? "N/A") lbs, \(workout.sets.map { String($0) } ?? "N/A") sets x \(workout.reps.map { String($0) } ?? "N/A") reps")
+
                                 .font(.subheadline)
                             if let notes = workout.notes, !notes.isEmpty {
                                 Text("Notes: \(notes)")
@@ -388,16 +389,17 @@ struct AddWorkoutModal: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var workoutDay: JWWorkoutDayEntity
     @ObservedObject var viewModel: WorkoutsViewModel
-    
+
     @State private var workoutName: String = ""
-    @State private var weight: String = ""  // Keep as String for user input
-    @State private var sets: String = ""    // Keep as String for user input
-    @State private var reps: String = ""    // Keep as String for user input
+    @State private var weight: String = ""
+    @State private var sets: String = ""
+    @State private var reps: String = ""
     @State private var notes: String = ""
-    
+
     @State private var suggestions: [JWWorkoutEntryEntity] = []
     @State private var showSuggestions: Bool = false
-    
+    @State private var recentWorkout: (name: String, weight: String, sets: String, reps: String, notes: String)?
+
     var body: some View {
         NavigationView {
             VStack {
@@ -409,22 +411,21 @@ struct AddWorkoutModal: View {
                     
                     Section(header: Text("Add New Workout")) {
                         VStack(alignment: .leading) {
-                            // Workout Name Input with Predictive Text
                             TextField("Workout Name", text: $workoutName)
                                 .onChange(of: workoutName) { newValue in
-                                    fetchSuggestions(for: newValue) // Fetch suggestions as the user types
+                                    fetchSuggestions(for: newValue) // Fetch suggestions dynamically
+                                    fetchMostRecentWorkout(for: newValue) // Fetch most recent workout dynamically
                                 }
-                                .autocapitalization(.none) // Ensure case-insensitive behavior in input
-                                .disableAutocorrection(true) // Avoid unwanted autocorrections
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
                             
-                            // Display Suggestions
                             if showSuggestions {
-                                ScrollView { // Allows the list to scroll if there are many suggestions
+                                ScrollView {
                                     LazyVStack(alignment: .leading, spacing: 4) {
                                         ForEach(suggestions, id: \.self) { suggestion in
                                             Button(action: {
                                                 workoutName = suggestion.entry ?? ""
-                                                showSuggestions = false // Hide suggestions after selection
+                                                showSuggestions = false
                                             }) {
                                                 Text(suggestion.entry ?? "Unnamed Workout")
                                                     .foregroundColor(.primary)
@@ -432,34 +433,39 @@ struct AddWorkoutModal: View {
                                                     .padding(.horizontal, 12)
                                                     .background(Color(.systemGray6))
                                                     .cornerRadius(6)
-                                                    .frame(maxWidth: .infinity, alignment: .leading) // Ensure text is left-aligned
                                             }
-                                            //.buttonStyle(PlainButtonStyle()) // Remove default button styling
                                         }
                                     }
                                     .padding(.horizontal, 4)
                                 }
-                                .frame(maxHeight: 150) // Limit the height of the suggestion list
+                                .frame(maxHeight: 150)
                                 .background(Color.white)
                                 .cornerRadius(8)
                                 .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                             }
                         }
-
                         
-                        // Weight input
+                        // Show the most recent workout information
+                        if let recent = recentWorkout {
+                            Section(header: Text("Most Recent: \(recent.name)")) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Weight: \(recent.weight)")
+                                    Text("Sets: \(recent.sets)")
+                                    Text("Reps: \(recent.reps)")
+                                    Text("Notes: \(recent.notes)")
+                                }
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                            }
+                        }
+                        
                         TextField("Weight (lbs)", text: $weight)
                             .keyboardType(.decimalPad)
-                        
-                        // Sets input
                         TextField("Sets", text: $sets)
                             .keyboardType(.numberPad)
-                        
-                        // Reps input
                         TextField("Reps", text: $reps)
                             .keyboardType(.numberPad)
-                        
-                        // Notes input
                         TextField("Notes", text: $notes)
                     }
                 }
@@ -474,39 +480,71 @@ struct AddWorkoutModal: View {
         }
     }
     
-    /// Save the workout and add it to Core Data
-    private func saveWorkout() {
-        guard !workoutName.trimmingCharacters(in: .whitespaces).isEmpty else {
-            print("Workout name cannot be empty.")
+    private func fetchMostRecentWorkout(for name: String) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            recentWorkout = nil
             return
         }
+
+        // Create a predicate to filter workouts by name (case-insensitive)
+        let namePredicate = NSPredicate(format: "name CONTAINS[c] %@", trimmedName)
         
-        // Save the workout to the workoutDay via viewModel
-        viewModel.addWorkout(workoutName: workoutName, weight: weight, sets: sets, reps: reps, notes: notes)
+        // Create a sort descriptor to sort by objectID (ascending: false to get the most recent)
+        let sortDescriptor = NSSortDescriptor(key: "objectID", ascending: false) // Sort by objectID to get the most recent
         
-        // Save the workout name to suggestions in Core Data
-        addWorkoutNameToSuggestions(workoutName: workoutName)
+        // Fetch request with predicate and sort descriptor
+        let request: NSFetchRequest<JWWorkoutEntity> = JWWorkoutEntity.fetchRequest()
+        request.predicate = namePredicate
+        request.sortDescriptors = [sortDescriptor]
         
-        // Dismiss the modal
-        dismiss()
+        do {
+            // Fetch the workouts with the name and sort by objectID to get the most recent
+            let workouts = try viewContext.fetch(request)
+            print("Fetched workouts count: \(workouts.count)")  // Debugging line
+            
+            if let mostRecentWorkout = workouts.first {
+                print("Found most recent workout: \(mostRecentWorkout.name ?? "Unknown Name")")
+                print("Weight: \(mostRecentWorkout.weight ?? "No Weight")")
+                print("Sets: \(mostRecentWorkout.sets ?? "No Sets")")
+                print("Reps: \(mostRecentWorkout.reps ?? "No Reps")")
+                print("Notes: \(mostRecentWorkout.notes ?? "No Notes")")
+                
+                // Update the UI with the most recent workout data
+                DispatchQueue.main.async {
+                    recentWorkout = (
+                        name: mostRecentWorkout.name ?? "No Name",
+                        weight: mostRecentWorkout.weight ?? "No Weight",
+                        sets: mostRecentWorkout.sets ?? "No Sets",
+                        reps: mostRecentWorkout.reps ?? "No Reps",
+                        notes: mostRecentWorkout.notes ?? "No Notes"
+                    )
+                }
+            } else {
+                print("No workout found matching the entered name.")
+                DispatchQueue.main.async {
+                    recentWorkout = nil
+                }
+            }
+            
+        } catch {
+            print("Error fetching most recent workout: \(error)")
+            DispatchQueue.main.async {
+                recentWorkout = nil
+            }
+        }
     }
-    
-    /// Add the workout name to suggestions in Core Data
+
     private func addWorkoutNameToSuggestions(workoutName: String) {
         let trimmedName = workoutName.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // Check if the workout already exists
         let fetchRequest: NSFetchRequest<JWWorkoutEntryEntity> = JWWorkoutEntryEntity.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "entry ==[cd] %@", trimmedName)
         
         do {
             let existingEntries = try viewContext.fetch(fetchRequest)
             if existingEntries.isEmpty {
-                // Create a new entry if none exists
                 let newEntry = JWWorkoutEntryEntity(context: viewContext)
                 newEntry.entry = trimmedName
-                
-                // Save the context
                 try viewContext.save()
                 print("Saved workout name to Core Data: \(trimmedName)")
             } else {
@@ -516,20 +554,18 @@ struct AddWorkoutModal: View {
             print("Error saving workout name to Core Data: \(error)")
         }
     }
-    
-    /// Fetch suggestions from Core Data
+
     private func fetchSuggestions(for input: String) {
         let trimmedInput = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        
         guard !trimmedInput.isEmpty else {
             suggestions = []
             showSuggestions = false
             return
         }
-        
+
         let fetchRequest: NSFetchRequest<JWWorkoutEntryEntity> = JWWorkoutEntryEntity.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "entry CONTAINS[cd] %@", trimmedInput)
-        fetchRequest.fetchLimit = 10 // Limit suggestions to 10
+        fetchRequest.fetchLimit = 10
         
         do {
             suggestions = try viewContext.fetch(fetchRequest)
@@ -540,7 +576,25 @@ struct AddWorkoutModal: View {
             showSuggestions = false
         }
     }
+    
+    private func saveWorkout() {
+        guard !workoutName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            print("Workout name cannot be empty.")
+            return
+        }
+
+        viewModel.addWorkout(workoutName: workoutName, weight: weight, sets: sets, reps: reps, notes: notes)
+        addWorkoutNameToSuggestions(workoutName: workoutName)
+        fetchMostRecentWorkout(for: workoutName)
+        workoutName = ""
+        weight = ""
+        sets = ""
+        reps = ""
+        notes = ""
+        dismiss()
+    }
 }
+
 
 
 struct AddWeekModal: View {
