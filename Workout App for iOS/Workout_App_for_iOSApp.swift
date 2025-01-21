@@ -32,8 +32,13 @@ struct Workout_App_for_iOSApp: App {
                 
                 DietView()
                     .tabItem {
-                        Label("Nutrition", systemImage: "gear")
+                        Label("Nutrition", systemImage: "fork.knife.circle")
                     }
+                
+                SettingsView()
+                    .tabItem {
+                        Label("Settinngs", systemImage: "gear")
+                }
             }
         }
     }
@@ -68,6 +73,17 @@ struct Workout_App_for_iOSApp: App {
                     NutritionView()
                 }
                 .navigationTitle("Diet")
+            }
+        }
+    }
+        
+    struct SettingsView: View{
+        var body: some View {
+            NavigationView {
+                VStack {
+                    Settings()
+                }
+                .navigationTitle("Settings")
             }
         }
     }
