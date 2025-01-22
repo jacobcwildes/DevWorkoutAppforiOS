@@ -110,7 +110,7 @@ struct WeekDetailView: View {
                         }
                         .background(
                             NavigationLink(
-                                destination: WorkoutDayDetailView(workoutDay: workoutDay, viewContext: viewContext) // Provide the viewContext here
+                                destination: WorkoutDayDetailView(workoutDay: workoutDay) // Provide the viewContext here
                             ) {
                                 EmptyView()
                             }
@@ -201,38 +201,65 @@ class WorkoutDaysViewModel: ObservableObject {
 struct WorkoutDayDetailView: View {
     @ObservedObject var workoutDay: JWWorkoutDayEntity
     @State private var showAddWorkoutModal = false
-    @ObservedObject private var viewModel: WorkoutsViewModel
 
-    init(workoutDay: JWWorkoutDayEntity, viewContext: NSManagedObjectContext) {
+    @FetchRequest var workouts: FetchedResults<JWWorkoutEntity>
+
+    init(workoutDay: JWWorkoutDayEntity) {
         self.workoutDay = workoutDay
-        _viewModel = ObservedObject(wrappedValue: WorkoutsViewModel(viewContext: viewContext, workoutDay: workoutDay))
+        _workouts = FetchRequest(
+            entity: JWWorkoutEntity.entity(),
+            sortDescriptors: [NSSortDescriptor(key: "objectID", ascending: true)],
+            predicate: NSPredicate(format: "workoutDay == %@", workoutDay)
+        )
     }
 
     var body: some View {
         VStack {
-            if viewModel.workouts.isEmpty {
+            if workouts.isEmpty {
                 Text("No workouts added for \(workoutDay.nameAttribute ?? "this day"). Tap '+' to add one.")
                     .foregroundColor(.gray)
                     .padding()
             } else {
                 List {
-                    ForEach(viewModel.workouts, id: \.objectID) { workout in
+                    ForEach(workouts, id: \.objectID) { workout in
                         VStack(alignment: .leading) {
+                            // Workout name
                             Text(workout.name ?? "N/A")
                                 .font(.headline)
-                            Text("Weight: \(workout.weight ?? "N/A") lbs, \(workout.sets.map { String($0) } ?? "N/A") sets x \(workout.reps.map { String($0) } ?? "N/A") reps")
 
-                                .font(.subheadline)
+                            // Notes
                             if let notes = workout.notes, !notes.isEmpty {
                                 Text("Notes: \(notes)")
                                     .font(.caption)
                                     .foregroundColor(.gray)
                             }
+
+                            // Display all sets for the workout
+                            if let sets = workout.workoutSets as? Set<JWWorkoutSetEntity>, !sets.isEmpty {
+                                ForEach(
+                                    Array(sets.sorted {
+                                        $0.objectID.uriRepresentation().absoluteString < $1.objectID.uriRepresentation().absoluteString
+                                    }),
+                                    id: \.objectID
+                                ) { set in
+                                    VStack(alignment: .leading) {
+                                        Text("Weight: \(set.weight ?? "N/A") lbs")
+                                        Text("Sets: \(set.sets ?? "N/A")")
+                                        Text("Reps: \(set.reps ?? "N/A")")
+                                    }
+                                    .padding(.leading, 10) // Indent for sets
+                                    .font(.subheadline)
+                                }
+                            } else {
+                                Text("No sets available.")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
                         }
+                        .padding(.vertical, 8)
                     }
                     .onDelete(perform: deleteWorkout)
                 }
-                Spacer()
             }
         }
         .navigationTitle(workoutDay.nameAttribute ?? "Workout Day")
@@ -243,15 +270,35 @@ struct WorkoutDayDetailView: View {
                 .font(.title)
         })
         .sheet(isPresented: $showAddWorkoutModal) {
-            AddWorkoutModal(workoutDay: workoutDay, viewModel: viewModel) // Pass viewModel here
-        }
-        .onAppear {
-            viewModel.fetchWorkouts()
+            AddWorkoutModal(workoutDay: workoutDay)
         }
     }
 
     private func deleteWorkout(at offsets: IndexSet) {
-        viewModel.deleteWorkout(at: offsets)
+        for index in offsets {
+            let workout = workouts[index]
+            workout.managedObjectContext?.delete(workout)
+        }
+        try? workoutDay.managedObjectContext?.save()
+    }
+}
+
+
+
+
+struct WorkoutView: View {
+    @ObservedObject var workoutsViewModel: WorkoutsViewModel
+
+    var body: some View {
+        List {
+            ForEach(workoutsViewModel.workouts, id: \.self) { workout in
+                Text(workout.name ?? "Unknown Workout")
+            }
+            .onDelete(perform: workoutsViewModel.deleteWorkout)
+        }
+        .onAppear {
+            workoutsViewModel.fetchWorkouts()
+        }
     }
 }
 
@@ -275,6 +322,7 @@ class WorkoutsViewModel: ObservableObject {
 
         do {
             workouts = try viewContext.fetch(fetchRequest)
+            print("Fetched workouts: \(workouts.count)")
         } catch {
             print("Failed to fetch workouts: \(error.localizedDescription)")
         }
@@ -318,7 +366,6 @@ class WorkoutsViewModel: ObservableObject {
         }
     }
 }
-
 
 struct AddWorkoutDayModal: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -384,11 +431,17 @@ struct AddWorkoutDayModal: View {
     }
 }
 
+struct WorkoutSet: Identifiable, Hashable {
+    var id = UUID()
+    var weight: String
+    var sets: String
+    var reps: String
+}
+
 struct AddWorkoutModal: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) var dismiss
     @ObservedObject var workoutDay: JWWorkoutDayEntity
-    @ObservedObject var viewModel: WorkoutsViewModel
 
     @State private var workoutName: String = ""
     @State private var weight: String = ""
@@ -396,6 +449,7 @@ struct AddWorkoutModal: View {
     @State private var reps: String = ""
     @State private var notes: String = ""
 
+    @State private var workoutSets: [WorkoutSet] = []
     @State private var suggestions: [JWWorkoutEntryEntity] = []
     @State private var showSuggestions: Bool = false
     @State private var recentWorkout: (name: String, weight: String, sets: String, reps: String, notes: String)?
@@ -408,17 +462,18 @@ struct AddWorkoutModal: View {
                         Text("Type: \(workoutDay.dayType ?? "No Type")")
                             .foregroundColor(.gray)
                     }
-                    
+
                     Section(header: Text("Add New Workout")) {
                         VStack(alignment: .leading) {
+                            // Workout name input with suggestions
                             TextField("Workout Name", text: $workoutName)
                                 .onChange(of: workoutName) { newValue in
-                                    fetchSuggestions(for: newValue) // Fetch suggestions dynamically
-                                    fetchMostRecentWorkout(for: newValue) // Fetch most recent workout dynamically
+                                    fetchSuggestions(for: newValue)
+                                    fetchMostRecentWorkout(for: newValue)
                                 }
                                 .autocapitalization(.none)
                                 .disableAutocorrection(true)
-                            
+
                             if showSuggestions {
                                 ScrollView {
                                     LazyVStack(alignment: .leading, spacing: 4) {
@@ -444,8 +499,8 @@ struct AddWorkoutModal: View {
                                 .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
                             }
                         }
-                        
-                        // Show the most recent workout information
+
+                        // Most recent workout information
                         if let recent = recentWorkout {
                             Section(header: Text("Most Recent: \(recent.name)")) {
                                 VStack(alignment: .leading, spacing: 8) {
@@ -459,7 +514,8 @@ struct AddWorkoutModal: View {
                                 .cornerRadius(8)
                             }
                         }
-                        
+
+                        // Inputs for adding sets
                         TextField("Weight (lbs)", text: $weight)
                             .keyboardType(.decimalPad)
                         TextField("Sets", text: $sets)
@@ -467,91 +523,38 @@ struct AddWorkoutModal: View {
                         TextField("Reps", text: $reps)
                             .keyboardType(.numberPad)
                         TextField("Notes", text: $notes)
+
+                        Button(action: addSet) {
+                            Text("Add Set")
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(8)
+                        }
+
+                        // Show added sets
+                        if !workoutSets.isEmpty {
+                            Section(header: Text("Sets")) {
+                                ForEach(workoutSets) { set in
+                                    VStack(alignment: .leading) {
+                                        Text("Weight: \(set.weight)")
+                                        Text("Sets: \(set.sets)")
+                                        Text("Reps: \(set.reps)")
+                                    }
+                                    .padding()
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(8)
+                                }
+                            }
+                        }
                     }
                 }
                 .navigationTitle("Add Workout")
                 .navigationBarItems(
                     leading: Button("Cancel") { dismiss() },
-                    trailing: Button("Save") {
-                        saveWorkout()
-                    }
+                    trailing: Button("Save") { saveWorkout() }
                 )
             }
-        }
-    }
-    
-    private func fetchMostRecentWorkout(for name: String) {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else {
-            recentWorkout = nil
-            return
-        }
-
-        // Create a predicate to filter workouts by name (case-insensitive)
-        let namePredicate = NSPredicate(format: "name CONTAINS[c] %@", trimmedName)
-        
-        // Create a sort descriptor to sort by objectID (ascending: false to get the most recent)
-        let sortDescriptor = NSSortDescriptor(key: "objectID", ascending: false) // Sort by objectID to get the most recent
-        
-        // Fetch request with predicate and sort descriptor
-        let request: NSFetchRequest<JWWorkoutEntity> = JWWorkoutEntity.fetchRequest()
-        request.predicate = namePredicate
-        request.sortDescriptors = [sortDescriptor]
-        
-        do {
-            // Fetch the workouts with the name and sort by objectID to get the most recent
-            let workouts = try viewContext.fetch(request)
-            print("Fetched workouts count: \(workouts.count)")  // Debugging line
-            
-            if let mostRecentWorkout = workouts.first {
-                print("Found most recent workout: \(mostRecentWorkout.name ?? "Unknown Name")")
-                print("Weight: \(mostRecentWorkout.weight ?? "No Weight")")
-                print("Sets: \(mostRecentWorkout.sets ?? "No Sets")")
-                print("Reps: \(mostRecentWorkout.reps ?? "No Reps")")
-                print("Notes: \(mostRecentWorkout.notes ?? "No Notes")")
-                
-                // Update the UI with the most recent workout data
-                DispatchQueue.main.async {
-                    recentWorkout = (
-                        name: mostRecentWorkout.name ?? "No Name",
-                        weight: mostRecentWorkout.weight ?? "No Weight",
-                        sets: mostRecentWorkout.sets ?? "No Sets",
-                        reps: mostRecentWorkout.reps ?? "No Reps",
-                        notes: mostRecentWorkout.notes ?? "No Notes"
-                    )
-                }
-            } else {
-                print("No workout found matching the entered name.")
-                DispatchQueue.main.async {
-                    recentWorkout = nil
-                }
-            }
-            
-        } catch {
-            print("Error fetching most recent workout: \(error)")
-            DispatchQueue.main.async {
-                recentWorkout = nil
-            }
-        }
-    }
-
-    private func addWorkoutNameToSuggestions(workoutName: String) {
-        let trimmedName = workoutName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let fetchRequest: NSFetchRequest<JWWorkoutEntryEntity> = JWWorkoutEntryEntity.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "entry ==[cd] %@", trimmedName)
-        
-        do {
-            let existingEntries = try viewContext.fetch(fetchRequest)
-            if existingEntries.isEmpty {
-                let newEntry = JWWorkoutEntryEntity(context: viewContext)
-                newEntry.entry = trimmedName
-                try viewContext.save()
-                print("Saved workout name to Core Data: \(trimmedName)")
-            } else {
-                print("Workout name already exists in Core Data: \(trimmedName)")
-            }
-        } catch {
-            print("Error saving workout name to Core Data: \(error)")
         }
     }
 
@@ -566,7 +569,7 @@ struct AddWorkoutModal: View {
         let fetchRequest: NSFetchRequest<JWWorkoutEntryEntity> = JWWorkoutEntryEntity.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "entry CONTAINS[cd] %@", trimmedInput)
         fetchRequest.fetchLimit = 10
-        
+
         do {
             suggestions = try viewContext.fetch(fetchRequest)
             showSuggestions = !suggestions.isEmpty
@@ -576,24 +579,150 @@ struct AddWorkoutModal: View {
             showSuggestions = false
         }
     }
-    
+
+    private func fetchMostRecentWorkout(for name: String) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            recentWorkout = nil
+            return
+        }
+
+        let namePredicate = NSPredicate(format: "name CONTAINS[c] %@", trimmedName)
+        let sortDescriptor = NSSortDescriptor(key: "objectID", ascending: false)
+
+        let request: NSFetchRequest<JWWorkoutEntity> = JWWorkoutEntity.fetchRequest()
+        request.predicate = namePredicate
+        request.sortDescriptors = [sortDescriptor]
+
+        do {
+            let workouts = try viewContext.fetch(request)
+            if let mostRecentWorkout = workouts.first {
+                // Fetch associated sets
+                if let sets = mostRecentWorkout.workoutSets as? Set<JWWorkoutSetEntity> {
+                    let sortedSets = sets.sorted { $0.objectID.uriRepresentation().absoluteString < $1.objectID.uriRepresentation().absoluteString }
+
+                    // Concatenate set details (e.g., for the first set, or aggregate as needed)
+                    if let firstSet = sortedSets.first {
+                        recentWorkout = (
+                            name: mostRecentWorkout.name ?? "No Name",
+                            weight: firstSet.weight ?? "No Weight",
+                            sets: firstSet.sets ?? "No Sets",
+                            reps: firstSet.reps ?? "No Reps",
+                            notes: mostRecentWorkout.notes ?? "No Notes"
+                        )
+                    } else {
+                        recentWorkout = (
+                            name: mostRecentWorkout.name ?? "No Name",
+                            weight: "No Weight",
+                            sets: "No Sets",
+                            reps: "No Reps",
+                            notes: mostRecentWorkout.notes ?? "No Notes"
+                        )
+                    }
+                }
+            } else {
+                recentWorkout = nil
+            }
+        } catch {
+            print("Error fetching recent workout: \(error.localizedDescription)")
+            recentWorkout = nil
+        }
+    }
+
+
+    private func addSet() {
+        guard !weight.isEmpty, !sets.isEmpty, !reps.isEmpty else {
+            print("Cannot add an empty set.")
+            return
+        }
+
+        let newSet = WorkoutSet(weight: weight, sets: sets, reps: reps)
+        workoutSets.append(newSet)
+
+        weight = ""
+        sets = ""
+        reps = ""
+    }
+
     private func saveWorkout() {
         guard !workoutName.trimmingCharacters(in: .whitespaces).isEmpty else {
             print("Workout name cannot be empty.")
             return
         }
 
-        viewModel.addWorkout(workoutName: workoutName, weight: weight, sets: sets, reps: reps, notes: notes)
-        addWorkoutNameToSuggestions(workoutName: workoutName)
-        fetchMostRecentWorkout(for: workoutName)
-        workoutName = ""
-        weight = ""
-        sets = ""
-        reps = ""
-        notes = ""
-        dismiss()
+        // Automatically add the current text field inputs as a set if they are valid
+        let trimmedWeight = weight.trimmingCharacters(in: .whitespaces)
+        let trimmedSets = sets.trimmingCharacters(in: .whitespaces)
+        let trimmedReps = reps.trimmingCharacters(in: .whitespaces)
+
+        if !trimmedWeight.isEmpty, !trimmedSets.isEmpty, !trimmedReps.isEmpty {
+            let newSet = WorkoutSet(weight: trimmedWeight, sets: trimmedSets, reps: trimmedReps)
+            workoutSets.append(newSet)
+        }
+
+        guard !workoutSets.isEmpty else {
+            print("No sets provided.")
+            return
+        }
+
+        let newWorkout = JWWorkoutEntity(context: viewContext)
+        newWorkout.name = workoutName
+        newWorkout.notes = notes
+        newWorkout.workoutDay = workoutDay
+
+        for workoutSet in workoutSets {
+            let workoutSetEntity = JWWorkoutSetEntity(context: viewContext)
+            workoutSetEntity.weight = workoutSet.weight
+            workoutSetEntity.sets = workoutSet.sets
+            workoutSetEntity.reps = workoutSet.reps
+            newWorkout.addToWorkoutSets(workoutSetEntity)
+        }
+
+        do {
+            try viewContext.save()
+            print("Workout saved successfully.")
+            addWorkoutNameToSuggestions(workoutName: workoutName) // Update suggestions
+            dismiss()
+        } catch {
+            print("Error saving workout: \(error.localizedDescription)")
+        }
     }
+
+    
+    private func addWorkoutNameToSuggestions(workoutName: String) {
+        let trimmedName = workoutName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Ensure the name is not empty
+        guard !trimmedName.isEmpty else {
+            print("Workout name is empty. Skipping addition to suggestions.")
+            return
+        }
+
+        let fetchRequest: NSFetchRequest<JWWorkoutEntryEntity> = JWWorkoutEntryEntity.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "entry ==[cd] %@", trimmedName)
+
+        do {
+            let existingEntries = try viewContext.fetch(fetchRequest)
+
+            // Add to suggestions if it doesn't already exist
+            if existingEntries.isEmpty {
+                let newEntry = JWWorkoutEntryEntity(context: viewContext)
+                newEntry.entry = trimmedName
+
+                // Save the context
+                try viewContext.save()
+                print("Saved workout name to Core Data: \(trimmedName)")
+            } else {
+                print("Workout name already exists in Core Data: \(trimmedName)")
+            }
+        } catch {
+            print("Error saving workout name to Core Data: \(error.localizedDescription)")
+        }
+    }
+
+
 }
+
 
 
 
@@ -653,7 +782,7 @@ class CoreDataStack {
 
     // Persistent container
     lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "DataModel") 
+        let container = NSPersistentContainer(name: "DataModel")
         container.loadPersistentStores { (storeDescription, error) in
             if let error = error {
                 fatalError("Unresolved error \(error), \(error.localizedDescription)")

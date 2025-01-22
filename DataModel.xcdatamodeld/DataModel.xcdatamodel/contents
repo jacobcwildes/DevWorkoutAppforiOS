@@ -23,9 +23,16 @@
         <relationship name="week" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="JWWeekEntity" inverseName="workouts" inverseEntity="JWWeekEntity"/>
         <relationship name="workoutDay" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="JWWorkoutDayEntity"/>
         <relationship name="workoutEntry" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="JWWorkoutEntryEntity" inverseName="workoutEntry" inverseEntity="JWWorkoutEntryEntity"/>
+        <relationship name="workoutSets" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="JWWorkoutSetEntity" inverseName="workout" inverseEntity="JWWorkoutSetEntity"/>
     </entity>
     <entity name="JWWorkoutEntryEntity" representedClassName="JWWorkoutEntryEntity" syncable="YES" codeGenerationType="class">
         <attribute name="entry" optional="YES" attributeType="String"/>
         <relationship name="workoutEntry" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="JWWorkoutEntity" inverseName="workoutEntry" inverseEntity="JWWorkoutEntity"/>
+    </entity>
+    <entity name="JWWorkoutSetEntity" representedClassName="JWWorkoutSetEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="reps" optional="YES" attributeType="String"/>
+        <attribute name="sets" optional="YES" attributeType="String"/>
+        <attribute name="weight" optional="YES" attributeType="String"/>
+        <relationship name="workout" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="JWWorkoutEntity" inverseName="workoutSets" inverseEntity="JWWorkoutEntity"/>
     </entity>
 </model>
