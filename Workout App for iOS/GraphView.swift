@@ -15,10 +15,12 @@ struct GraphView: View {
     @State private var workouts: [JWWorkoutEntity] = [] // Store workouts manually
     @State private var selectedWorkouts: [String] = [] // Stores selected workout names for graphs
     @State private var isSelectingWorkout: Bool = false // Controls the workout selection sheet
+    @State private var showWeight: Bool = true // Toggle between Weight and Volume
 
     var body: some View {
         NavigationView {
             VStack {
+                // Display a message when no workouts are selected
                 if selectedWorkouts.isEmpty {
                     Text("No graphs selected. Tap '+' to add a graph.")
                         .foregroundColor(.gray)
@@ -27,7 +29,11 @@ struct GraphView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
                             ForEach(selectedWorkouts, id: \.self) { workoutName in
-                                WorkoutGraph(workouts: filteredWorkouts(for: workoutName), workoutName: workoutName)
+                                WorkoutGraph(
+                                    workouts: filteredWorkouts(for: workoutName),
+                                    workoutName: workoutName,
+                                    showWeight: showWeight // Pass the toggle value to the graph view
+                                )
                             }
                         }
                         .padding()
@@ -49,6 +55,15 @@ struct GraphView: View {
                     isPresented: $isSelectingWorkout
                 )
             }
+            .toolbar {
+                // Add a toggle to switch between Weight and Volume
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Toggle(isOn: $showWeight) {
+                        Text(showWeight ? "Weight" : "Volume")
+                    }
+                    .toggleStyle(SwitchToggleStyle())
+                }
+            }
         }
         .onAppear {
             fetchWorkouts()
@@ -63,15 +78,7 @@ struct GraphView: View {
         
         do {
             let allWorkouts = try viewContext.fetch(fetchRequest)
-            
-            // Optionally print the fetched workouts for debugging
-            print("Fetched workouts ordered by ROWID:")
-            for workout in allWorkouts {
-                print("Workout: \(workout.name ?? "Unnamed"), Weight: \(workout.weight ?? "No weight")")
-            }
-            
             workouts = allWorkouts // Store the fetched workouts
-            
         } catch {
             print("Failed to fetch workouts: \(error.localizedDescription)")
         }
@@ -82,11 +89,11 @@ struct GraphView: View {
     }
 }
 
-
 struct WorkoutGraph: View {
     let workouts: [JWWorkoutEntity] // The list of filtered workouts
     let workoutName: String // The name of the workout to display dynamically as the title
-
+    let showWeight: Bool // The toggle to choose between Weight and Volume
+    
     var body: some View {
         VStack(alignment: .leading) {
             Text(workoutName)  // Use the workout name dynamically as the title
@@ -99,25 +106,45 @@ struct WorkoutGraph: View {
                 Chart {
                     ForEach(workouts.indices, id: \.self) { index in
                         let workout = workouts[index]
-                        if let weight = Float(workout.weight ?? "") {
-                            LineMark(
-                                x: .value("Order", index), // Use index for X-axis (most recent will be on the right)
-                                y: .value("Weight", weight)
-                            )
-                            PointMark(
-                                x: .value("Order", index), // Use index for X-axis (most recent will be on the right)
-                                y: .value("Weight", weight)
-                            )
-                        }
+                        
+                        // Calculate the value (Weight or Volume) depending on the toggle
+                        let value = showWeight ? calculateWeight(for: workout) : calculateVolume(for: workout)
+                        
+                        // Plot the graph with the selected value
+                        LineMark(
+                            x: .value("Order", index),
+                            y: .value("Value", value)
+                        )
+                        PointMark(
+                            x: .value("Order", index),
+                            y: .value("Value", value)
+                        )
                     }
                 }
                 .frame(height: 200)
+                .padding(.top, 10)
             }
         }
     }
+    
+    // Calculate the weighted average for the workout (Weight)
+    private func calculateWeight(for workout: JWWorkoutEntity) -> Float {
+        if let weightString = workout.weight, let weight = Float(weightString) {
+            return weight
+        }
+        return 0
+    }
+    
+    // Calculate the volume for the workout: Volume = Sets x Reps x Weight
+    private func calculateVolume(for workout: JWWorkoutEntity) -> Float {
+        guard let setsString = workout.sets, let repsString = workout.reps,
+              let sets = Int(setsString), let reps = Int(repsString),
+              let weightString = workout.weight, let weight = Float(weightString) else {
+            return 0
+        }
+        return Float(sets * reps) * weight
+    }
 }
-
-
 
 
 struct WorkoutSelectionView: View {
@@ -161,7 +188,7 @@ struct WorkoutSelectionView: View {
         
         do {
             let allEntries = try viewContext.fetch(fetchRequest)
-            let names = allEntries.compactMap { $0.entry } // Assuming 'entry' is the workout name
+            let names = allEntries.compactMap { $0.entry }
             return Array(Set(names)).sorted()
         } catch {
             print("Failed to fetch workout entry names: \(error.localizedDescription)")
@@ -169,5 +196,3 @@ struct WorkoutSelectionView: View {
         }
     }
 }
-
-
