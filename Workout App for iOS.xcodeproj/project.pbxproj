@@ -69,7 +69,7 @@
 		16B59AEB2D34211F00231D09 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
 		16B59AF12D34218600231D09 /* DataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = DataModel.xcdatamodel; sourceTree = "<group>"; };
 		16B59AF32D3421F400231D09 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
-		16D61FAD2D400A4E00CFA230 /* WorkoutSelectorScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSelectorScreen.swift; sourceTree = "<group>"; };
+		16D61FAD2D400A4E00CFA230 /* WorkoutSelectorScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSelectorScreen.swift; sourceTree = "<group>"; wrapsLines = 0; };
 		16D61FAF2D400A8A00CFA230 /* JWWeekEntity+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JWWeekEntity+CoreDataClass.swift"; sourceTree = "<group>"; };
 		16D61FB02D400A8A00CFA230 /* JWWeekEntity+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JWWeekEntity+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		16D61FB12D400A8A00CFA230 /* JWWorkoutDayEntity+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JWWorkoutDayEntity+CoreDataClass.swift"; sourceTree = "<group>"; };

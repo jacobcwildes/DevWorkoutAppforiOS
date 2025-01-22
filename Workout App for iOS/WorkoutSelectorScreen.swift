@@ -221,42 +221,45 @@ struct WorkoutDayDetailView: View {
                     .padding()
             } else {
                 List {
+                    // Iterate over the workouts and create a NavigationLink for each workout
                     ForEach(workouts, id: \.objectID) { workout in
-                        VStack(alignment: .leading) {
-                            // Workout name
-                            Text(workout.name ?? "N/A")
-                                .font(.headline)
+                        NavigationLink(destination: EditWorkoutView(workout: workout)) {
+                            VStack(alignment: .leading) {
+                                // Workout name
+                                Text(workout.name ?? "N/A")
+                                    .font(.headline)
 
-                            // Notes
-                            if let notes = workout.notes, !notes.isEmpty {
-                                Text("Notes: \(notes)")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-
-                            // Display all sets for the workout
-                            if let sets = workout.workoutSets as? Set<JWWorkoutSetEntity>, !sets.isEmpty {
-                                ForEach(
-                                    Array(sets.sorted {
-                                        $0.objectID.uriRepresentation().absoluteString < $1.objectID.uriRepresentation().absoluteString
-                                    }),
-                                    id: \.objectID
-                                ) { set in
-                                    VStack(alignment: .leading) {
-                                        Text("Weight: \(set.weight ?? "N/A") lbs")
-                                        Text("Sets: \(set.sets ?? "N/A")")
-                                        Text("Reps: \(set.reps ?? "N/A")")
-                                    }
-                                    .padding(.leading, 10) // Indent for sets
-                                    .font(.subheadline)
+                                // Notes
+                                if let notes = workout.notes, !notes.isEmpty {
+                                    Text("Notes: \(notes)")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
                                 }
-                            } else {
-                                Text("No sets available.")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
+
+                                // Display all sets for the workout
+                                if let sets = workout.workoutSets as? Set<JWWorkoutSetEntity>, !sets.isEmpty {
+                                    ForEach(
+                                        Array(sets.sorted {
+                                            $0.objectID.uriRepresentation().absoluteString < $1.objectID.uriRepresentation().absoluteString
+                                        }),
+                                        id: \.objectID
+                                    ) { set in
+                                        VStack(alignment: .leading) {
+                                            Text("Weight: \(set.weight ?? "N/A") lbs")
+                                            Text("Sets: \(set.sets ?? "N/A")")
+                                            Text("Reps: \(set.reps ?? "N/A")")
+                                        }
+                                        .padding(.leading, 10) // Indent for sets
+                                        .font(.subheadline)
+                                    }
+                                } else {
+                                    Text("No sets available.")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
                             }
+                            .padding(.vertical, 8)
                         }
-                        .padding(.vertical, 8)
                     }
                     .onDelete(perform: deleteWorkout)
                 }
@@ -274,6 +277,7 @@ struct WorkoutDayDetailView: View {
         }
     }
 
+
     private func deleteWorkout(at offsets: IndexSet) {
         for index in offsets {
             let workout = workouts[index]
@@ -282,6 +286,144 @@ struct WorkoutDayDetailView: View {
         try? workoutDay.managedObjectContext?.save()
     }
 }
+
+struct EditWorkoutView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject var workout: JWWorkoutEntity
+    @State private var workoutSets: [JWWorkoutSetEntity] = []
+    
+    @State private var weight: String = ""
+    @State private var sets: String = ""
+    @State private var reps: String = ""
+    @State private var notes: String = ""
+    
+    // To keep track of any sets added
+    @State private var newSets: [WorkoutSet] = []
+
+    var body: some View {
+        VStack {
+            Form {
+                Section(header: Text("Edit Workout")) {
+                    TextField("Workout Name", text: Binding(get: { workout.name ?? "" }, set: { workout.name = $0 }))
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                    
+                    TextField("Notes", text: Binding(get: { workout.notes ?? "" }, set: { workout.notes = $0 }))
+                    
+                    TextField("Weight", text: $weight)
+                        .keyboardType(.decimalPad)
+                    TextField("Sets", text: $sets)
+                        .keyboardType(.numberPad)
+                    TextField("Reps", text: $reps)
+                        .keyboardType(.numberPad)
+                    
+                    // Add Set Button
+                    Button(action: addSet) {
+                        Text("Add Set")
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(8)
+                    }
+                    
+                    // Display all sets for the workout
+                    if let sets = workout.workoutSets as? Set<JWWorkoutSetEntity>, !sets.isEmpty {
+                        ForEach(Array(sets.sorted { $0.objectID.uriRepresentation().absoluteString < $1.objectID.uriRepresentation().absoluteString }), id: \.self) { set in
+                            VStack(alignment: .leading) {
+                                Text("Weight: \(set.weight ?? "N/A") lbs")
+                                Text("Sets: \(set.sets ?? "N/A")")
+                                Text("Reps: \(set.reps ?? "N/A")")
+                                
+                                Button(action: {
+                                    deleteSet(set)
+                                }) {
+                                    Text("Delete Set")
+                                        .foregroundColor(.red)
+                                }
+                            }
+                            .padding(.leading, 10) // Indent for sets
+                            .font(.subheadline)
+                        }
+                    }
+                }
+            }
+            
+            // Save Changes Button
+            Button(action: saveWorkout) {
+                Text("Save Workout")
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Color.green)
+                    .cornerRadius(8)
+            }
+        }
+        .onAppear {
+            // Load workout sets to the state for editing
+            workoutSets = Array(workout.workoutSets as? Set<JWWorkoutSetEntity> ?? [])
+        }
+        .navigationTitle("Edit Workout")
+    }
+
+    private func addSet() {
+        // Check if all fields are filled
+        guard !weight.isEmpty, !sets.isEmpty, !reps.isEmpty else { return }
+        
+        // Create a new set as a Core Data entity (JWWorkoutSetEntity)
+        let newWorkoutSetEntity = JWWorkoutSetEntity(context: viewContext)
+        newWorkoutSetEntity.weight = weight
+        newWorkoutSetEntity.sets = sets
+        newWorkoutSetEntity.reps = reps
+        newWorkoutSetEntity.workout = workout // Associate this set with the current workout
+
+        // Add the new set to the Core Data workoutSets relationship
+        workout.addToWorkoutSets(newWorkoutSetEntity)
+
+        // Save context to persist the new set
+        saveContext()
+
+        // Clear the input fields after adding
+        weight = ""
+        sets = ""
+        reps = ""
+    }
+
+
+    private func deleteSet(_ set: JWWorkoutSetEntity) {
+        // Remove the set from Core Data
+        viewContext.delete(set)
+
+        // Save context after deletion
+        saveContext()
+
+        // Refresh the workout sets (optional, since Core Data will update the relationship automatically)
+        workoutSets = Array(workout.workoutSets as? Set<JWWorkoutSetEntity> ?? [])
+    }
+
+    private func saveWorkout() {
+        // Save the workout with the updated sets
+        workout.sets = sets
+        workout.reps = reps
+        workout.weight = weight
+        workout.notes = notes
+        
+        // Save the changes to Core Data
+        saveContext()
+        
+        // Dismiss the view
+        dismiss()
+    }
+    
+    private func saveContext() {
+        do {
+            try viewContext.save()
+            print("Workout updated successfully.")
+        } catch {
+            print("Error saving workout: \(error.localizedDescription)")
+        }
+    }
+}
+
 
 
 
