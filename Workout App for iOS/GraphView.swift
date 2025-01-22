@@ -12,15 +12,14 @@ import CoreData
 struct GraphView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
-    @State private var workouts: [JWWorkoutEntity] = [] // Store workouts manually
-    @State private var selectedWorkouts: [String] = [] // Stores selected workout names for graphs
-    @State private var isSelectingWorkout: Bool = false // Controls the workout selection sheet
-    @State private var showWeight: Bool = true // Toggle between Weight and Volume
+    @State private var workouts: [JWWorkoutEntity] = [] // Store workouts
+    @State private var selectedWorkouts: [String] = [] // Selected workout names for graphs
+    @State private var isSelectingWorkout: Bool = false // Controls selection sheet
+    @State private var showWeight: Bool = true // Toggle between weight and volume
 
     var body: some View {
         NavigationView {
             VStack {
-                // Display a message when no workouts are selected
                 if selectedWorkouts.isEmpty {
                     Text("No graphs selected. Tap '+' to add a graph.")
                         .foregroundColor(.gray)
@@ -32,7 +31,7 @@ struct GraphView: View {
                                 WorkoutGraph(
                                     workouts: filteredWorkouts(for: workoutName),
                                     workoutName: workoutName,
-                                    showWeight: showWeight // Pass the toggle value to the graph view
+                                    showWeight: showWeight
                                 )
                             }
                         }
@@ -42,6 +41,12 @@ struct GraphView: View {
             }
             .navigationTitle("Graphs")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Toggle(isOn: $showWeight) {
+                        Text(showWeight ? "Weight" : "Volume")
+                    }
+                    .toggleStyle(SwitchToggleStyle())
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { isSelectingWorkout = true }) {
                         Image(systemName: "plus")
@@ -50,19 +55,10 @@ struct GraphView: View {
             }
             .sheet(isPresented: $isSelectingWorkout) {
                 WorkoutSelectionView(
-                    workouts: workouts, // Passing workouts array for selection
+                    workouts: workouts,
                     selectedWorkouts: $selectedWorkouts,
                     isPresented: $isSelectingWorkout
                 )
-            }
-            .toolbar {
-                // Add a toggle to switch between Weight and Volume
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Toggle(isOn: $showWeight) {
-                        Text(showWeight ? "Weight" : "Volume")
-                    }
-                    .toggleStyle(SwitchToggleStyle())
-                }
             }
         }
         .onAppear {
@@ -72,13 +68,9 @@ struct GraphView: View {
     
     private func fetchWorkouts() {
         let fetchRequest = NSFetchRequest<JWWorkoutEntity>(entityName: "JWWorkoutEntity")
-        
-        // Sorting by rowID, which corresponds to SQLite row order
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "objectID", ascending: true)] // Sort by objectID
-        
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "objectID", ascending: true)]
         do {
-            let allWorkouts = try viewContext.fetch(fetchRequest)
-            workouts = allWorkouts // Store the fetched workouts
+            workouts = try viewContext.fetch(fetchRequest)
         } catch {
             print("Failed to fetch workouts: \(error.localizedDescription)")
         }
@@ -89,61 +81,75 @@ struct GraphView: View {
     }
 }
 
+
 struct WorkoutGraph: View {
     let workouts: [JWWorkoutEntity] // The list of filtered workouts
     let workoutName: String // The name of the workout to display dynamically as the title
     let showWeight: Bool // The toggle to choose between Weight and Volume
     
     var body: some View {
-        VStack(alignment: .leading) {
-            Text(workoutName)  // Use the workout name dynamically as the title
-                .font(.headline)
-            
-            if workouts.isEmpty {
-                Text("No data available.")
-                    .foregroundColor(.gray)
-            } else {
-                Chart {
-                    ForEach(workouts.indices, id: \.self) { index in
-                        let workout = workouts[index]
-                        
-                        // Calculate the value (Weight or Volume) depending on the toggle
-                        let value = showWeight ? calculateWeight(for: workout) : calculateVolume(for: workout)
-                        
-                        // Plot the graph with the selected value
-                        LineMark(
-                            x: .value("Order", index),
-                            y: .value("Value", value)
-                        )
-                        PointMark(
-                            x: .value("Order", index),
-                            y: .value("Value", value)
-                        )
+            VStack(alignment: .leading) {
+                Text(workoutName)
+                    .font(.headline)
+
+                if workouts.isEmpty {
+                    Text("No data available.")
+                        .foregroundColor(.gray)
+                } else {
+                    Chart {
+                        ForEach(workouts.indices, id: \.self) { index in
+                            let workout = workouts[index]
+                            
+                            // Calculate value based on toggle (Weight or Volume)
+                            let value = showWeight ? calculateWeight(for: workout) : calculateVolume(for: workout)
+                            
+                            LineMark(
+                                x: .value("Order", index), // Order for X-axis
+                                y: .value(showWeight ? "Weight" : "Volume", value) // Y-axis based on toggle
+                            )
+                            PointMark(
+                                x: .value("Order", index),
+                                y: .value(showWeight ? "Weight" : "Volume", value)
+                            )
+                            .annotation {
+                                Text("\(value, specifier: "%.1f")")
+                                    .font(.caption)
+                                    .padding(5)
+                                    .foregroundColor(.white)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(5)
+                                    .shadow(radius: 5)
+                            }
+                        }
                     }
+                    .frame(height: 200)
+                    .padding(.top, 10)
                 }
-                .frame(height: 200)
-                .padding(.top, 10)
             }
         }
-    }
     
-    // Calculate the weighted average for the workout (Weight)
+    // Calculate the weighted average weight for the workout
     private func calculateWeight(for workout: JWWorkoutEntity) -> Float {
-        if let weightString = workout.weight, let weight = Float(weightString) {
-            return weight
-        }
-        return 0
-    }
-    
-    // Calculate the volume for the workout: Volume = Sets x Reps x Weight
-    private func calculateVolume(for workout: JWWorkoutEntity) -> Float {
-        guard let setsString = workout.sets, let repsString = workout.reps,
-              let sets = Int(setsString), let reps = Int(repsString),
-              let weightString = workout.weight, let weight = Float(weightString) else {
+        guard let sets = workout.workoutSets as? Set<JWWorkoutSetEntity>, !sets.isEmpty else {
             return 0
         }
-        return Float(sets * reps) * weight
+        let totalWeight = sets.reduce(0) { $0 + (Float($1.weight ?? "") ?? 0) }
+        return totalWeight / Float(sets.count) // Weighted average of weight
     }
+
+    // Calculate the total volume for the workout: Volume = Sets x Reps x Weight
+    private func calculateVolume(for workout: JWWorkoutEntity) -> Float {
+        guard let sets = workout.workoutSets as? Set<JWWorkoutSetEntity>, !sets.isEmpty else {
+            return 0
+        }
+        return sets.reduce(0) { total, set in
+            let setCount = Float(set.sets ?? "") ?? 0
+            let repsCount = Float(set.reps ?? "") ?? 0
+            let weight = Float(set.weight ?? "") ?? 0
+            return total + (setCount * repsCount * weight)
+        }
+    }
+
 }
 
 

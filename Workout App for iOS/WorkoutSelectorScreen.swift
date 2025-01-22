@@ -600,96 +600,8 @@ struct AddWorkoutModal: View {
         NavigationView {
             VStack {
                 Form {
-                    Section(header: Text("Workout Day: \(workoutDay.nameAttribute ?? "Unknown")")) {
-                        Text("Type: \(workoutDay.dayType ?? "No Type")")
-                            .foregroundColor(.gray)
-                    }
-
-                    Section(header: Text("Add New Workout")) {
-                        VStack(alignment: .leading) {
-                            // Workout name input with suggestions
-                            TextField("Workout Name", text: $workoutName)
-                                .onChange(of: workoutName) { newValue in
-                                    fetchSuggestions(for: newValue)
-                                    fetchMostRecentWorkout(for: newValue)
-                                }
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
-
-                            if showSuggestions {
-                                ScrollView {
-                                    LazyVStack(alignment: .leading, spacing: 4) {
-                                        ForEach(suggestions, id: \.self) { suggestion in
-                                            Button(action: {
-                                                workoutName = suggestion.entry ?? ""
-                                                showSuggestions = false
-                                            }) {
-                                                Text(suggestion.entry ?? "Unnamed Workout")
-                                                    .foregroundColor(.primary)
-                                                    .padding(.vertical, 8)
-                                                    .padding(.horizontal, 12)
-                                                    .background(Color(.systemGray6))
-                                                    .cornerRadius(6)
-                                            }
-                                        }
-                                    }
-                                    .padding(.horizontal, 4)
-                                }
-                                .frame(maxHeight: 150)
-                                .background(Color.white)
-                                .cornerRadius(8)
-                                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                            }
-                        }
-
-                        // Most recent workout information
-                        if let recent = recentWorkout {
-                            Section(header: Text("Most Recent: \(recent.name)")) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Weight: \(recent.weight)")
-                                    Text("Sets: \(recent.sets)")
-                                    Text("Reps: \(recent.reps)")
-                                    Text("Notes: \(recent.notes)")
-                                }
-                                .padding()
-                                .background(Color(.systemGray6))
-                                .cornerRadius(8)
-                            }
-                        }
-
-                        // Inputs for adding sets
-                        TextField("Weight (lbs)", text: $weight)
-                            .keyboardType(.decimalPad)
-                        TextField("Sets", text: $sets)
-                            .keyboardType(.numberPad)
-                        TextField("Reps", text: $reps)
-                            .keyboardType(.numberPad)
-                        TextField("Notes", text: $notes)
-
-                        Button(action: addSet) {
-                            Text("Add Set")
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Color.blue)
-                                .cornerRadius(8)
-                        }
-
-                        // Show added sets
-                        if !workoutSets.isEmpty {
-                            Section(header: Text("Sets")) {
-                                ForEach(workoutSets) { set in
-                                    VStack(alignment: .leading) {
-                                        Text("Weight: \(set.weight)")
-                                        Text("Sets: \(set.sets)")
-                                        Text("Reps: \(set.reps)")
-                                    }
-                                    .padding()
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(8)
-                                }
-                            }
-                        }
-                    }
+                    workoutDaySection
+                    addNewWorkoutSection
                 }
                 .navigationTitle("Add Workout")
                 .navigationBarItems(
@@ -699,6 +611,122 @@ struct AddWorkoutModal: View {
             }
         }
     }
+
+    private var workoutDaySection: some View {
+        Section(header: Text("Workout Day: \(workoutDay.nameAttribute ?? "Unknown")")) {
+            Text("Type: \(workoutDay.dayType ?? "No Type")")
+                .foregroundColor(.gray)
+        }
+    }
+
+    private var addNewWorkoutSection: some View {
+        Section(header: Text("Add New Workout")) {
+            VStack(alignment: .leading) {
+                workoutNameInput
+                recentWorkoutSection
+                workoutInputs
+                addSetButton
+                addedSetsSection
+            }
+        }
+    }
+
+    private var workoutNameInput: some View {
+        VStack(alignment: .leading) {
+            TextField("Workout Name", text: $workoutName)
+                .onChange(of: workoutName) { newValue in
+                    fetchSuggestions(for: newValue)
+                    fetchMostRecentWorkout(for: newValue)
+                }
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+
+            if showSuggestions {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 4) {
+                        ForEach(suggestions, id: \.self) { suggestion in
+                            Button(action: {
+                                workoutName = suggestion.entry ?? ""
+                                showSuggestions = false
+                            }) {
+                                Text(suggestion.entry ?? "Unnamed Workout")
+                                    .foregroundColor(.white)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 12)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(6)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+                .frame(maxHeight: 150)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+            }
+        }
+    }
+
+    private var recentWorkoutSection: some View {
+        Group {
+            if let recent = recentWorkout {
+                Section(header: Text("Most Recent: \(recent.name)")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Weight: \(recent.weight)")
+                        Text("Sets: \(recent.sets)")
+                        Text("Reps: \(recent.reps)")
+                        Text("Notes: \(recent.notes)")
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                }
+            }
+        }
+    }
+
+    private var workoutInputs: some View {
+        Group {
+            TextField("Weight (lbs)", text: $weight)
+                .keyboardType(.decimalPad)
+            TextField("Sets", text: $sets)
+                .keyboardType(.numberPad)
+            TextField("Reps", text: $reps)
+                .keyboardType(.numberPad)
+            TextField("Notes", text: $notes)
+        }
+    }
+
+    private var addSetButton: some View {
+        Button(action: addSet) {
+            Text("Add Set")
+                .foregroundColor(Color(.white))
+                .padding()
+                .background(Color.blue)
+                .cornerRadius(8)
+        }
+    }
+
+    private var addedSetsSection: some View {
+        Group {
+            if !workoutSets.isEmpty {
+                Section(header: Text("Sets")) {
+                    ForEach(workoutSets) { set in
+                        VStack(alignment: .leading) {
+                            Text("Weight: \(set.weight)")
+                            Text("Sets: \(set.sets)")
+                            Text("Reps: \(set.reps)")
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                    }
+                }
+            }
+        }
+    }
+
 
     private func fetchSuggestions(for input: String) {
         let trimmedInput = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -771,7 +799,6 @@ struct AddWorkoutModal: View {
         }
     }
 
-
     private func addSet() {
         guard !weight.isEmpty, !sets.isEmpty, !reps.isEmpty else {
             print("Cannot add an empty set.")
@@ -829,7 +856,6 @@ struct AddWorkoutModal: View {
             print("Error saving workout: \(error.localizedDescription)")
         }
     }
-
     
     private func addWorkoutNameToSuggestions(workoutName: String) {
         let trimmedName = workoutName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -864,9 +890,6 @@ struct AddWorkoutModal: View {
 
 
 }
-
-
-
 
 struct AddWeekModal: View {
     @Environment(\.managedObjectContext) private var viewContext
